@@ -6,6 +6,7 @@ import { selectRun, selectTargetAllowed, selectVolume } from '../selectors';
 import { Harness } from './harness';
 
 const T = GAMEPLAY.timing;
+const R1 = getLevel(1).fillRate; // level 1 has no surge: volume = R1 × seconds
 
 describe('state machine — core flow', () => {
   it('walks MENU → LEVEL_INTRO → READY → FILLING → SETTLING → RESULT → LEVEL_INTRO', () => {
@@ -69,10 +70,10 @@ describe('state machine — core flow', () => {
   it('freezes volume at release and reports it through SETTLING/RESULT', () => {
     const h = new Harness();
     h.startRun();
-    h.hold(2000); // 10.5 %/s → 21%
-    expect(selectVolume(h.game.state, h.t + 5000)).toBeCloseTo(21, 9);
+    h.hold(2000);
+    expect(selectVolume(h.game.state, h.t + 5000)).toBeCloseTo(R1 * 2, 9);
     h.wait(T.settleMs);
-    expect(selectVolume(h.game.state, h.t)).toBeCloseTo(21, 9);
+    expect(selectVolume(h.game.state, h.t)).toBeCloseTo(R1 * 2, 9);
   });
 });
 
@@ -124,7 +125,7 @@ describe('state machine — lives, game over, victory', () => {
     const stop = h.events('fillStop')[0].payload;
     expect(stop.reason).toBe('overflow');
     expect(stop.volume).toBe(100);
-    expect(stop.at).toBeCloseTo(pressAt + (100 / 10.5) * 1000, 6);
+    expect(stop.at).toBeCloseTo(pressAt + (100 / R1) * 1000, 6);
     expect(h.events('levelFail')[0].payload.score.overflow).toBe(true);
   });
 });
@@ -182,16 +183,16 @@ describe('state machine — pause / interruption', () => {
     const h = new Harness();
     h.startRun();
     h.input('FILL_PRESS');
-    h.wait(2000); // 21%
+    h.wait(1000);
     h.input('PAUSE');
     expect(h.events('fillStop')[0].payload.reason).toBe('interrupted');
     h.wait(60_000); // no simulated time passes while paused
-    expect(selectVolume(h.game.state, h.t)).toBeCloseTo(21, 9);
+    expect(selectVolume(h.game.state, h.t)).toBeCloseTo(R1, 9);
     h.input('RESUME');
     expect(h.game.state).toMatchObject({ tag: 'READY' });
-    expect(selectVolume(h.game.state, h.t)).toBeCloseTo(21, 9);
-    h.hold(1000); // +10.5
-    expect(h.events('fillStop')[1].payload.volume).toBeCloseTo(31.5, 9);
+    expect(selectVolume(h.game.state, h.t)).toBeCloseTo(R1, 9);
+    h.hold(500);
+    expect(h.events('fillStop')[1].payload.volume).toBeCloseTo(R1 * 1.5, 9);
     expect(h.events('lifeLost')).toHaveLength(0);
   });
 

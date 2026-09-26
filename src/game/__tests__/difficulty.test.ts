@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LEVELS, type LevelConfig } from '../config/levels';
 import {
   bandBounds,
-  difficultyIndex,
+  fullGlassMs,
   getLevel,
   idealHoldMs,
   timeInBandMs,
@@ -19,12 +19,20 @@ describe('difficulty curve (config table)', () => {
     expect(validateLevels()).toEqual([]);
   });
 
-  it('gets strictly harder every level', () => {
+  it('gets strictly harder every level: faster pour, stronger surge, shorter window', () => {
     for (let i = 1; i < LEVELS.length; i++) {
-      expect(difficultyIndex(LEVELS[i])).toBeGreaterThan(difficultyIndex(LEVELS[i - 1]));
-      expect(LEVELS[i].fillRate).toBeGreaterThanOrEqual(LEVELS[i - 1].fillRate);
-      expect(LEVELS[i].bandWidth).toBeLessThanOrEqual(LEVELS[i - 1].bandWidth);
+      expect(timeInBandMs(LEVELS[i])).toBeLessThan(timeInBandMs(LEVELS[i - 1]));
+      expect(fullGlassMs(LEVELS[i])).toBeLessThan(fullGlassMs(LEVELS[i - 1]));
+      expect(LEVELS[i].fillRate).toBeGreaterThan(LEVELS[i - 1].fillRate);
+      expect(LEVELS[i].surge).toBeGreaterThanOrEqual(LEVELS[i - 1].surge);
     }
+  });
+
+  it('is hard from the start and brutal at the end', () => {
+    expect(timeInBandMs(getLevel(1))).toBeLessThan(350);
+    expect(fullGlassMs(getLevel(1))).toBeLessThan(6000);
+    expect(timeInBandMs(getLevel(20))).toBeLessThan(80);
+    expect(fullGlassMs(getLevel(20))).toBeLessThan(1300);
   });
 
   it('keeps every band inside the chamber, clear of the base and rim', () => {
@@ -50,12 +58,8 @@ describe('difficulty curve (config table)', () => {
     expect(LEVELS.filter((l) => l.bandCenter === 50)).toHaveLength(0);
   });
 
-  it('keeps every timing window humanly achievable', () => {
-    for (const l of LEVELS) expect(timeInBandMs(l)).toBeGreaterThanOrEqual(150);
-    // Reference points from design-handoff §6.
-    expect(timeInBandMs(getLevel(2))).toBeCloseTo(862, 0);
-    expect(timeInBandMs(getLevel(18))).toBeCloseTo(211, 0);
-    expect(timeInBandMs(getLevel(20))).toBeCloseTo(174, 0);
+  it('keeps every timing window above the touch-jitter floor', () => {
+    for (const l of LEVELS) expect(timeInBandMs(l)).toBeGreaterThanOrEqual(70);
   });
 
   it('assigns tiers in blocks of five', () => {
@@ -85,7 +89,7 @@ describe('difficulty curve (config table)', () => {
       expect(validateLevels(edit(19, { bandWidth: 3 })).join()).toMatch(/L20: timing window/);
     });
     it('same band position two levels running', () => {
-      expect(validateLevels(edit(1, { bandCenter: 50 })).join()).toMatch(/L2: band centre moved/);
+      expect(validateLevels(edit(1, { bandCenter: 47 })).join()).toMatch(/L2: band centre moved/);
     });
   });
 });

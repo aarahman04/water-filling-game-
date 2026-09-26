@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { getLevel } from '../difficulty';
 import { Harness } from './harness';
+
+const R1 = getLevel(1).fillRate;
 
 /**
  * Frame-rate independence: the same physical hold must produce the same volume
@@ -14,14 +17,14 @@ describe('timing precision across frame rates', () => {
     { name: '24Hz low-end', frameMs: 1000 / 24, jitter: 30 },
   ];
 
-  const holdMs = 4321.5;
+  const holdMs = 2321.5;
 
   it.each(profiles)('$name gives an identical final volume', ({ frameMs, jitter }) => {
     const h = new Harness(frameMs, jitter);
     h.startRun();
     h.hold(holdMs);
     const stop = h.events('fillStop')[0].payload;
-    expect(stop.volume).toBe((10.5 * holdMs) / 1000);
+    expect(stop.volume).toBe((R1 * holdMs) / 1000);
   });
 
   it('live volume sampled by the renderer matches the closed form at every frame', () => {
@@ -32,7 +35,7 @@ describe('timing precision across frame rates', () => {
     const pressAt = h.t;
     h.hold(3000);
     expect(samples.length).toBeGreaterThan(50);
-    for (const s of samples) expect(s.volume).toBeCloseTo((10.5 * (s.now - pressAt)) / 1000, 9);
+    for (const s of samples) expect(s.volume).toBeCloseTo((R1 * (s.now - pressAt)) / 1000, 9);
   });
 
   it('a single huge frame hitch still resolves every timed transition in order', () => {

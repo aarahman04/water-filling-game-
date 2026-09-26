@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GameController, type FrameScheduler } from '../../game';
+import { GameController, getLevel, idealHoldMs, type FrameScheduler } from '../../game';
 import { DEFAULT_SAVE, ProgressStore, SAVE_KEY, applyEvent, parseSave } from '../progress';
 import { memoryStore } from '../storage';
 
@@ -48,7 +48,7 @@ describe('ProgressStore', () => {
     game.dispatch({ type: 'START_RUN', now: 0 });
     game.dispatch({ type: 'TICK', now: 2000 });
     game.dispatch({ type: 'FILL_PRESS', now: 2000 });
-    game.dispatch({ type: 'FILL_RELEASE', now: 2000 + (48 / 10.5) * 1000 });
+    game.dispatch({ type: 'FILL_RELEASE', now: 2000 + idealHoldMs(getLevel(1)) });
     game.dispatch({ type: 'TICK', now: 8000 });
     game.dispatch({ type: 'CONTINUE', now: 8000 }); // level 2
     store.update((d) => ({ ...d, muted: true }));

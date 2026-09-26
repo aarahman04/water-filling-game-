@@ -14,6 +14,7 @@ import {
   GameController,
   LEVELS,
   bandBounds,
+  fullGlassMs,
   idealHoldMs,
   getLevel,
   timeInBandMs,
@@ -25,7 +26,7 @@ import {
 const { values } = parseArgs({
   options: {
     seed: { type: 'string', default: '7' },
-    sd: { type: 'string', default: '110' },
+    sd: { type: 'string', default: '35' },
     fps: { type: 'string', default: '60' },
   },
 });
@@ -44,9 +45,11 @@ console.table(
       level: l.level,
       tier: l.tier,
       'rate %/s': l.fillRate,
+      surge: l.surge,
       'band %': `${b.min.toFixed(2)}–${b.max.toFixed(2)}`,
       'ideal hold ms': Math.round(idealHoldMs(l)),
       'window ms': Math.round(timeInBandMs(l)),
+      'full glass s': +(fullGlassMs(l) / 1000).toFixed(2),
     };
   }),
 );

@@ -1,4 +1,5 @@
 import { LEVELS, type LevelConfig } from './config/levels';
+import { secondsToReach } from './fillEngine';
 
 export interface Band {
   readonly min: number;
@@ -18,17 +19,23 @@ export function bandBounds(cfg: LevelConfig): Band {
 
 /** Hold duration that lands exactly on band centre from an empty chamber. */
 export function idealHoldMs(cfg: LevelConfig): number {
-  return (cfg.bandCenter / cfg.fillRate) * 1000;
+  return secondsToReach(0, cfg.bandCenter, cfg.fillRate, cfg.surge) * 1000;
 }
 
 /** How long the water surface spends inside the band while filling — the player's timing window. */
 export function timeInBandMs(cfg: LevelConfig): number {
-  return (cfg.bandWidth / cfg.fillRate) * 1000;
+  const { min, max } = bandBounds(cfg);
+  return secondsToReach(min, max, cfg.fillRate, cfg.surge) * 1000;
 }
 
-/** Single scalar for "how hard": %/s of fill per % of band. Higher = harder. */
+/** Hold duration that fills the glass to the rim (overflow) from empty. */
+export function fullGlassMs(cfg: LevelConfig): number {
+  return secondsToReach(0, 100, cfg.fillRate, cfg.surge) * 1000;
+}
+
+/** Single scalar for "how hard": inverse of the timing window. Higher = harder. */
 export function difficultyIndex(cfg: LevelConfig): number {
-  return cfg.fillRate / cfg.bandWidth;
+  return 1000 / timeInBandMs(cfg);
 }
 
 export interface CurveRules {
@@ -36,7 +43,7 @@ export interface CurveRules {
   readonly minBandFloor: number;
   /** Highest allowed band edge — leaves headroom below the rim / overflow. */
   readonly maxBandCeiling: number;
-  /** Narrowest allowed timing window. ~150ms is below typical human release variance, so treat as the hard floor. */
+  /** Narrowest allowed timing window. Below ~70ms a release is decided more by touch latency jitter than skill. */
   readonly minTimeInBandMs: number;
   /** Consecutive levels must move the band centre at least this much. */
   readonly minCenterShift: number;
@@ -47,7 +54,7 @@ export interface CurveRules {
 export const DEFAULT_CURVE_RULES: CurveRules = {
   minBandFloor: 15,
   maxBandCeiling: 95,
-  minTimeInBandMs: 150,
+  minTimeInBandMs: 70,
   minCenterShift: 5,
   minCenterSpread: 20,
 };
@@ -65,6 +72,7 @@ export function validateLevels(
     if (cfg.level !== i + 1) errors.push(`${tag}: level number out of sequence at index ${i}`);
     if (!(cfg.fillRate > 0)) errors.push(`${tag}: fillRate must be > 0`);
     if (!(cfg.bandWidth > 0)) errors.push(`${tag}: bandWidth must be > 0`);
+    if (!(cfg.surge >= 0)) errors.push(`${tag}: surge must be >= 0`);
     const { min, max } = bandBounds(cfg);
     if (min < rules.minBandFloor) errors.push(`${tag}: band bottom ${min} below floor ${rules.minBandFloor}`);
     if (max > rules.maxBandCeiling) errors.push(`${tag}: band top ${max} above ceiling ${rules.maxBandCeiling}`);
@@ -75,8 +83,10 @@ export function validateLevels(
     const prev = levels[i - 1];
     if (prev) {
       if (cfg.fillRate < prev.fillRate) errors.push(`${tag}: fillRate decreased`);
-      if (cfg.bandWidth > prev.bandWidth) errors.push(`${tag}: bandWidth increased`);
-      if (difficultyIndex(cfg) <= difficultyIndex(prev)) errors.push(`${tag}: not harder than L${prev.level}`);
+      if (cfg.surge < prev.surge) errors.push(`${tag}: surge decreased`);
+      // Band width may vary with position (a surge makes high bands pass faster);
+      // what must shrink every level is the time the surface spends inside the band.
+      if (difficultyIndex(cfg) <= difficultyIndex(prev)) errors.push(`${tag}: timing window not shorter than L${prev.level}`);
       if (Math.abs(cfg.bandCenter - prev.bandCenter) < rules.minCenterShift)
         errors.push(`${tag}: band centre moved < ${rules.minCenterShift} from L${prev.level}`);
     }

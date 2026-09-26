@@ -100,8 +100,8 @@ function step(state: GameState, action: GameAction, config: MachineConfig, emit:
     case 'READY':
       if (action.type === 'FILL_PRESS') {
         const cfg = getLevel(state.run.level, levels);
-        const segment = startSegment(now, state.volume, cfg.fillRate);
-        emit('fillStart', { level: cfg.level, at: now, startVolume: segment.startVolume, rate: cfg.fillRate });
+        const segment = startSegment(now, state.volume, cfg.fillRate, cfg.surge);
+        emit('fillStart', { level: cfg.level, at: now, startVolume: segment.startVolume, rate: cfg.fillRate, surge: cfg.surge });
         return { tag: 'FILLING', run: { ...state.run, pouredThisAttempt: true }, segment };
       }
       if (action.type === 'PAUSE') return pause(state, now, emit);

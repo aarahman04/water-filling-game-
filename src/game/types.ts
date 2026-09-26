@@ -76,7 +76,7 @@ export interface GameEventMap {
   runStart: { at: number };
   levelIntro: { level: number; lives: number; at: number; readyAt: number };
   ready: { level: number; volume: number; at: number };
-  fillStart: { level: number; at: number; startVolume: number; rate: number };
+  fillStart: { level: number; at: number; startVolume: number; rate: number; surge: number };
   fillStop: { level: number; at: number; volume: number; reason: FillStopReason };
   settleComplete: { level: number; at: number; score: AttemptScore };
   levelPass: { level: number; at: number; score: AttemptScore };

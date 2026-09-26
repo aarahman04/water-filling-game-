@@ -253,7 +253,7 @@ export function TutorialCard({ bandAlwaysVisible, onDone }: { bandAlwaysVisible:
           ? 'Hold Fill to pour. Release so the water stops inside the band.'
           : 'Watch the band. Hold Fill, then release where the band was.'}
       </p>
-      <p className="card__meta">20 levels · 5 lives · each level pours faster with a narrower band.</p>
+      <p className="card__meta">20 levels · 5 lives · every level pours faster, and from level 5 the water speeds up as it rises.</p>
       <div className="card__actions">
         <button type="button" className="cta cta--primary cta--md" onClick={onDone}>
           Got it
