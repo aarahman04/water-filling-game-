@@ -8,8 +8,9 @@
  */
 
 import {
-  bandBounds,
+  flowZones,
   getLevel,
+  selectBand,
   selectRun,
   selectTargetAllowed,
   type FrameInfo,
@@ -22,6 +23,10 @@ import { MOTION, STAGE, TIERS, withAlpha, type Palette, type TierStyle } from '.
 /** Padding around the art box so overflow ribbons / success drops can draw outside it. */
 const PAD = 16;
 const TITLE_VOLUME = 55;
+/** Drip twist: time for the post-release drip to land (inside the 480ms settle). */
+const DRIP_MS = 300;
+/** Fog lifts this long after the result appears. */
+const FOG_LIFT_MS = 220;
 const C = STAGE.chamber;
 const BOTTOM = C.y + C.h;
 
@@ -151,7 +156,9 @@ export class WaterRenderer {
 
     this.updateBubbles(state, now, heightPx, tier, reduced);
     if (heightPx > 0.25) this.drawWater(heightPx, surface, tier, state, now);
-    this.drawStream(state, now, heightPx, tier, reduced);
+    this.drawStream(state, now, heightPx, tier, reduced, v);
+    this.drawDrip(state, now, heightPx);
+    this.drawFog(state, now);
     this.drawBand(state, now);
     this.drawResult(state, now, reduced);
     this.drawDrops(now, reduced);
@@ -172,6 +179,13 @@ export class WaterRenderer {
       case 'GAME_OVER':
       case 'VICTORY':
         return this.lastVolume;
+      case 'SETTLING': {
+        // Drip twist: water keeps rising from the release level to the scored level.
+        const { releaseVolume, volume: final } = state.score;
+        if (final === releaseVolume) return final;
+        const u = Math.min(1, Math.max(0, (now - this.stopAt) / DRIP_MS));
+        return releaseVolume + (final - releaseVolume) * u;
+      }
       default:
         return volume;
     }
@@ -362,7 +376,7 @@ export class WaterRenderer {
   }
 
   // ── Stream ─────────────────────────────────────────────────────────────────
-  private drawStream(state: GameState, now: number, heightPx: number, tier: TierStyle, reduced: boolean) {
+  private drawStream(state: GameState, now: number, heightPx: number, tier: TierStyle, reduced: boolean, volume: number) {
     const { ctx } = this;
     const filling = state.tag === 'FILLING';
     const sinceStop = now - this.stopAt;
@@ -370,7 +384,13 @@ export class WaterRenderer {
     if (!filling && !cutting) return;
 
     const onset = filling ? this.o.palette.easeOut(Math.min(1, (now - this.fillStartAt) / MOTION.streamOnset)) : 1;
-    const width = tier.streamWidth * (reduced ? 1 : onset);
+    // Flow spike: the stream visibly thickens while the burst is active.
+    let spike = 1;
+    if (filling) {
+      const cfg = getLevel(state.run.level);
+      for (const z of flowZones(cfg, state.run.setup)) if (volume >= z.from && volume < z.to) spike = 1.7;
+    }
+    const width = tier.streamWidth * (reduced ? 1 : onset) * spike;
     const cut = cutting ? this.o.palette.easeIn(sinceStop / MOTION.streamCutoff) : 0;
     const opacity = cutting ? 0.85 * (1 - cut) : 1;
     const wobble = reduced ? 0 : Math.sin((2 * Math.PI * now) / 180);
@@ -400,6 +420,62 @@ export class WaterRenderer {
     ctx.restore();
   }
 
+  /** Drip twist: a thin trickle from the nozzle while the drip lands. */
+  private drawDrip(state: GameState, now: number, heightPx: number) {
+    if (state.tag !== 'SETTLING' || state.score.volume === state.score.releaseVolume) return;
+    const t = now - this.stopAt;
+    if (t < 0 || t > DRIP_MS) return;
+    const { ctx } = this;
+    const cx = STAGE.outlet.x;
+    const surfaceY = BOTTOM - heightPx;
+    ctx.save();
+    ctx.fillStyle = `rgba(215,247,245,${0.8 * (1 - t / DRIP_MS)})`;
+    // Falling droplets rather than a solid stream.
+    for (let i = 0; i < 4; i++) {
+      const y = STAGE.outlet.y + (((t / 1000) * 420 + i * 22) % Math.max(1, surfaceY - STAGE.outlet.y));
+      ctx.beginPath();
+      ctx.ellipse(cx, y, 1.4, 2.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /** Fog twist: frosted glass hides the water from `below` % under the band centre upward. */
+  private drawFog(state: GameState, now: number) {
+    const s = state.tag === 'PAUSED' ? state.resumeTo : state;
+    if (s.tag !== 'LEVEL_INTRO' && s.tag !== 'READY' && s.tag !== 'FILLING' && s.tag !== 'SETTLING' && s.tag !== 'RESULT') return;
+    const fog = getLevel(s.run.level).twists.fog;
+    if (!fog) return;
+    let alpha = 1;
+    if (s.tag === 'RESULT') {
+      const since = now - (this.stopAt + MOTION.settle);
+      alpha = 1 - Math.min(1, Math.max(0, since / FOG_LIFT_MS));
+      if (alpha <= 0) return;
+    }
+    const from = Math.max(0, s.run.setup.center - fog.below);
+    const yBottom = BOTTOM - (from / 100) * C.h;
+    const yTop = C.y - 6;
+    const { ctx } = this;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    const g = ctx.createLinearGradient(0, yBottom + 10, 0, yTop);
+    g.addColorStop(0, 'rgba(176,205,218,0)');
+    g.addColorStop(0.06, 'rgba(176,205,218,1)');
+    g.addColorStop(1, 'rgba(196,222,232,1)');
+    ctx.fillStyle = g;
+    ctx.fillRect(C.x - 2, yTop, C.w + 4, yBottom + 10 - yTop);
+    // Frost streaks so it reads as glass, not a UI block.
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = 1;
+    for (let y = yTop + 6; y < yBottom; y += 9) {
+      ctx.beginPath();
+      ctx.moveTo(C.x + 6 + ((y * 7) % 23), y);
+      ctx.lineTo(C.x + C.w - 6 - ((y * 5) % 31), y + 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // ── Target band ────────────────────────────────────────────────────────────
   private bandAlpha(state: GameState, now: number): number {
     const mode = this.o.getTargetVisibility();
@@ -425,11 +501,11 @@ export class WaterRenderer {
     const alpha = this.bandAlpha(state, now);
     if (alpha <= 0) return;
     const { ctx } = this;
-    const cfg = getLevel(run.level);
-    const { min, max } = bandBounds(cfg);
-    const yTop = BOTTOM - (max / 100) * C.h;
-    const yBot = BOTTOM - (min / 100) * C.h;
-    const yMid = BOTTOM - (cfg.bandCenter / 100) * C.h;
+    const band = selectBand(state, now);
+    if (!band) return;
+    const yTop = BOTTOM - (band.max / 100) * C.h;
+    const yBot = BOTTOM - (band.min / 100) * C.h;
+    const yMid = BOTTOM - (band.center / 100) * C.h;
 
     // Success colour transition 480–700ms after release.
     let color = this.o.palette.accent;
@@ -493,8 +569,7 @@ export class WaterRenderer {
 
     if (failed) {
       // Bracket from actual height to nearest band edge.
-      const cfg = getLevel(state.run.level);
-      const { min, max } = bandBounds(cfg);
+      const { min, max } = state.score.band;
       const edge = state.score.volume > max ? max : min;
       const ey = BOTTOM - (edge / 100) * C.h;
       ctx.beginPath();

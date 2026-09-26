@@ -3,6 +3,7 @@ export * from './config/gameplay';
 export * from './difficulty';
 export * from './scoring';
 export * from './fillEngine';
+export * from './twists';
 export * from './types';
 export * from './machine';
 export * from './selectors';

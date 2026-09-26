@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { GameController, getLevel, idealHoldMs, type FrameScheduler } from '../../game';
+import { GAMEPLAY, GameController, getLevel, idealHoldMs, type FrameScheduler } from '../../game';
 import { DEFAULT_SAVE, ProgressStore, SAVE_KEY, applyEvent, parseSave } from '../progress';
 import { memoryStore } from '../storage';
 
-const score = (accuracy: number) => ({ volume: 48, hit: true, deviation: 0, direction: 'center' as const, accuracy, overflow: false });
+const band = { center: 48, width: 5, min: 45.5, max: 50.5 };
+const score = (accuracy: number) => ({
+  volume: 48,
+  releaseVolume: 48,
+  band,
+  hit: true,
+  deviation: 0,
+  direction: 'center' as const,
+  accuracy,
+  overflow: false,
+});
 
 describe('progress reducer', () => {
   it('counts runs', () => {
@@ -45,12 +55,13 @@ describe('ProgressStore', () => {
     const game = new GameController(undefined, scheduler);
     store.bind(game);
 
-    game.dispatch({ type: 'START_RUN', now: 0 });
-    game.dispatch({ type: 'TICK', now: 2000 });
-    game.dispatch({ type: 'FILL_PRESS', now: 2000 });
-    game.dispatch({ type: 'FILL_RELEASE', now: 2000 + idealHoldMs(getLevel(1)) });
-    game.dispatch({ type: 'TICK', now: 8000 });
-    game.dispatch({ type: 'CONTINUE', now: 8000 }); // level 2
+    const ready = GAMEPLAY.timing.introMs;
+    game.dispatch({ type: 'START_RUN', now: 0, seed: 1 });
+    game.dispatch({ type: 'TICK', now: ready });
+    game.dispatch({ type: 'FILL_PRESS', now: ready });
+    game.dispatch({ type: 'FILL_RELEASE', now: ready + idealHoldMs(getLevel(1)) }); // level 1 has no twists
+    game.dispatch({ type: 'TICK', now: ready + 8000 });
+    game.dispatch({ type: 'CONTINUE', now: ready + 8000 }); // level 2
     store.update((d) => ({ ...d, muted: true }));
     await Promise.resolve();
 

@@ -1,5 +1,6 @@
 import type { FillSegment } from './fillEngine';
 import type { AttemptScore } from './scoring';
+import type { AttemptSetup } from './twists';
 
 /** Per-run data carried through every in-run state. */
 export interface RunContext {
@@ -8,14 +9,20 @@ export interface RunContext {
   readonly lives: number;
   /** Any water poured this attempt — makes "Restart level" cost a life (design-handoff §4.I). */
   readonly pouredThisAttempt: boolean;
+  /** Run seed for twist rolls. */
+  readonly seed: number;
+  /** Attempts started this run (all levels); part of the roll so retries differ. */
+  readonly attempt: number;
+  /** This attempt's rolled twists (band position, movement phase, spike location). */
+  readonly setup: AttemptSetup;
 }
 
 export type ResultNext = 'nextLevel' | 'retry' | 'gameOver' | 'victory';
 
 export type MenuState = { readonly tag: 'MENU' };
 export type LevelIntroState = { readonly tag: 'LEVEL_INTRO'; readonly run: RunContext; readonly readyAt: number };
-/** Fill enabled. `volume` is non-zero only when resuming an attempt interrupted mid-pour. */
-export type ReadyState = { readonly tag: 'READY'; readonly run: RunContext; readonly volume: number };
+/** Fill enabled. `volume` / `pourMs` are non-zero only when resuming an attempt interrupted mid-pour. */
+export type ReadyState = { readonly tag: 'READY'; readonly run: RunContext; readonly volume: number; readonly pourMs: number };
 export type FillingState = { readonly tag: 'FILLING'; readonly run: RunContext; readonly segment: FillSegment };
 export type SettlingState = {
   readonly tag: 'SETTLING';
@@ -56,7 +63,8 @@ export type StateTag = GameState['tag'];
 
 /** Inputs to the reducer. Every action carries its own timestamp (performance.now() clock). */
 export type GameAction =
-  | { readonly type: 'START_RUN'; readonly now: number }
+  /** `seed` defaults to one derived from `now`; pass it for reproducible runs. */
+  | { readonly type: 'START_RUN'; readonly now: number; readonly seed?: number }
   | { readonly type: 'TICK'; readonly now: number }
   | { readonly type: 'FILL_PRESS'; readonly now: number }
   | { readonly type: 'FILL_RELEASE'; readonly now: number }

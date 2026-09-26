@@ -73,9 +73,17 @@ export function validateLevels(
     if (!(cfg.fillRate > 0)) errors.push(`${tag}: fillRate must be > 0`);
     if (!(cfg.bandWidth > 0)) errors.push(`${tag}: bandWidth must be > 0`);
     if (!(cfg.surge >= 0)) errors.push(`${tag}: surge must be >= 0`);
-    const { min, max } = bandBounds(cfg);
-    if (min < rules.minBandFloor) errors.push(`${tag}: band bottom ${min} below floor ${rules.minBandFloor}`);
-    if (max > rules.maxBandCeiling) errors.push(`${tag}: band top ${max} above ceiling ${rules.maxBandCeiling}`);
+    // Worst case after jitter + movement must still sit inside the safe zone.
+    const t = cfg.twists;
+    const reach = (t.jitter ?? 0) + (t.moving?.amplitude ?? 0) + cfg.bandWidth / 2;
+    const min = cfg.bandCenter - reach;
+    const max = cfg.bandCenter + reach;
+    if (min < rules.minBandFloor) errors.push(`${tag}: band bottom can reach ${min.toFixed(1)}, below floor ${rules.minBandFloor}`);
+    if (max > rules.maxBandCeiling) errors.push(`${tag}: band top can reach ${max.toFixed(1)}, above ceiling ${rules.maxBandCeiling}`);
+    if (t.shrink && !(t.shrink.to > 0 && t.shrink.to <= 1 && t.shrink.overMs > 0)) errors.push(`${tag}: invalid shrink`);
+    if (t.spike && !(t.spike.factor >= 1 && t.spike.length > 0)) errors.push(`${tag}: invalid spike`);
+    if (t.drip !== undefined && !(t.drip >= 0 && t.drip < min)) errors.push(`${tag}: drip must be >= 0 and below the lowest band`);
+    if (t.moving && !(t.moving.periodMs > 0)) errors.push(`${tag}: invalid moving period`);
     const window = timeInBandMs(cfg);
     if (window < rules.minTimeInBandMs)
       errors.push(`${tag}: timing window ${window.toFixed(0)}ms below ${rules.minTimeInBandMs}ms`);

@@ -10,6 +10,9 @@ export const progress = new ProgressStore(createStore());
 export const sfx = new Sfx(false);
 
 progress.bind(controller);
+
+// Dev builds only: lets automated browser checks drive the game. Stripped from production.
+if (import.meta.env.DEV) (window as unknown as { __fillLine: unknown }).__fillLine = { controller };
 sfx.bind(controller);
 progress.subscribe(() => sfx.setMuted(progress.get().muted));
 

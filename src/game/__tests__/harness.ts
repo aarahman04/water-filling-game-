@@ -1,5 +1,6 @@
 import { GameController, type FrameScheduler } from '../controller';
-import { getLevel, idealHoldMs } from '../difficulty';
+import { getLevel } from '../difficulty';
+import { solveIdealHoldMs } from '../twists';
 import type { GameEvent, GameEventName } from '../types';
 import { GAMEPLAY } from '../config/gameplay';
 
@@ -72,12 +73,12 @@ export class Harness {
     this.wait(GAMEPLAY.timing.introMs);
   }
 
-  /** Play current level: hit (centre) or miss (well below band). Leaves state at RESULT with CTA enabled. */
+  /** Play current level: hit (band centre incl. all twists) or miss (tiny pour, far below any band). Leaves state at RESULT with CTA enabled. */
   attempt(hit: boolean) {
     const s = this.game.state;
     if (s.tag !== 'READY') throw new Error(`expected READY, got ${s.tag}`);
     const cfg = getLevel(s.run.level);
-    this.hold(hit ? idealHoldMs(cfg) : 500);
+    this.hold(hit ? solveIdealHoldMs(cfg, s.run.setup) : 60);
     this.wait(GAMEPLAY.timing.failContinueDelayMs);
   }
 

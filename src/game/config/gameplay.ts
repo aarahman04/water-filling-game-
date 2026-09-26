@@ -31,10 +31,10 @@ export interface GameplayConfig {
 }
 
 export const GAMEPLAY: GameplayConfig = {
-  startingLives: 5,
+  startingLives: 3,
   targetVisibility: 'always',
   timing: {
-    introMs: 1820,
+    introMs: 2300,
     settleMs: 480,
     passContinueDelayMs: 700,
     failContinueDelayMs: 800,

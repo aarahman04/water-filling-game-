@@ -660,3 +660,17 @@ button {
     opacity: 0;
   }
 }
+
+/* ── Twists ────────────────────────────────────────────────────────────── */
+.prompt__text--warn {
+  color: var(--accent);
+  max-width: 300px;
+  text-wrap: balance;
+  animation: rise-in var(--duration-ui) var(--ease-out) both;
+}
+
+.twists {
+  color: var(--fail);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}

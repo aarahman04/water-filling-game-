@@ -54,8 +54,8 @@ describe('difficulty curve (config table)', () => {
     }
     expect(ups).toBeGreaterThanOrEqual(5);
     expect(downs).toBeGreaterThanOrEqual(5);
-    // Not always centred.
-    expect(LEVELS.filter((l) => l.bandCenter === 50)).toHaveLength(0);
+    // Not parked in the middle unless jitter moves it every attempt.
+    expect(LEVELS.filter((l) => l.bandCenter === 50 && !l.twists.jitter)).toHaveLength(0);
   });
 
   it('keeps every timing window above the touch-jitter floor', () => {

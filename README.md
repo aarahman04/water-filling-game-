@@ -1,7 +1,7 @@
 # Fill Line
 
 A precision water-filling game. Hold to pour, then release so the water stops inside the band.
-20 levels, 5 lives, fully offline. React + TypeScript + Canvas, with Capacitor for Android.
+20 levels, 3 lives, 7 kinds of twist, fully offline. React + TypeScript + Canvas, with Capacitor for Android.
 
 ## Scripts
 
@@ -18,7 +18,8 @@ A precision water-filling game. Hold to pour, then release so the water stops in
 
 ```
 src/game/          Pure game logic, no DOM. Unit-tested.
-  config/levels.ts     ← difficulty table: fill rate, band width, band centre per level
+  config/levels.ts     ← difficulty table: fill rate, surge, band, twists per level
+  twists.ts            per-attempt surprises (moving/hidden/shrinking band, fog, flow spikes, drip)
   config/gameplay.ts   ← lives, timing gates, target visibility mode
   machine.ts           state machine reducer (discriminated union)
   fillEngine.ts        closed-form fill timing, frame-rate independent

@@ -1,7 +1,9 @@
 /** Read-only views of GameState for the render / UI layers. */
 
 import type { TargetVisibility } from './config/gameplay';
-import { volumeAt } from './fillEngine';
+import { getLevel } from './difficulty';
+import { pourMsAt, volumeAt } from './fillEngine';
+import { bandAt, type BandGeometry } from './twists';
 import type { GameState, RunContext } from './types';
 
 /** Authoritative water volume (0–100) at time `now`. Sample this every frame. */
@@ -49,9 +51,27 @@ export function selectTargetAllowed(state: GameState, mode: TargetVisibility): b
       return true;
     case 'READY':
     case 'FILLING':
-      return mode === 'always';
+      return mode === 'always' && !getLevel(s.run.level).twists.hidden;
     default:
       return false;
+  }
+}
+
+/** Band geometry to draw right now (moves / shrinks while pouring, frozen at release). */
+export function selectBand(state: GameState, now: number): BandGeometry | null {
+  const s = state.tag === 'PAUSED' ? state.resumeTo : state;
+  switch (s.tag) {
+    case 'LEVEL_INTRO':
+      return bandAt(getLevel(s.run.level), s.run.setup, 0);
+    case 'READY':
+      return bandAt(getLevel(s.run.level), s.run.setup, s.pourMs);
+    case 'FILLING':
+      return bandAt(getLevel(s.run.level), s.run.setup, pourMsAt(s.segment, now));
+    case 'SETTLING':
+    case 'RESULT':
+      return s.score.band;
+    default:
+      return null;
   }
 }
 

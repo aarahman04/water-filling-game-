@@ -18,6 +18,8 @@ import {
   idealHoldMs,
   getLevel,
   timeInBandMs,
+  solveIdealHoldMs,
+  twistLabels,
   validateLevels,
   type FrameScheduler,
   type GameEventName,
@@ -50,6 +52,7 @@ console.table(
       'ideal hold ms': Math.round(idealHoldMs(l)),
       'window ms': Math.round(timeInBandMs(l)),
       'full glass s': +(fullGlassMs(l) / 1000).toFixed(2),
+      twists: twistLabels(l.twists).join(', '),
     };
   }),
 );
@@ -105,7 +108,7 @@ for (let guard = 0; guard < 5000; guard++) {
   if (s.tag === 'READY') {
     const cfg = getLevel(s.run.level);
     game.dispatch({ type: 'FILL_PRESS', now: t });
-    advance(Math.max(50, idealHoldMs(cfg) + gauss() * sdMs));
+    advance(Math.max(50, solveIdealHoldMs(cfg, s.run.setup) + gauss() * sdMs));
     game.dispatch({ type: 'FILL_RELEASE', now: t });
   } else if (s.tag === 'RESULT' && t >= s.advanceAt) {
     game.dispatch({ type: 'CONTINUE', now: t });

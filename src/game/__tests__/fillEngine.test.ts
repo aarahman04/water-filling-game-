@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { bandBounds, getLevel } from '../difficulty';
+import { getLevel } from '../difficulty';
 import { overflowAt, secondsToReach, speedAt, startSegment, stopSegment, volumeAt } from '../fillEngine';
 import { scoreAttempt } from '../scoring';
+import { bandAt, baseSetup } from '../twists';
+import type { LevelConfig } from '../config/levels';
+
+const baseBand = (cfg: LevelConfig) => bandAt(cfg, baseSetup(cfg), 0);
 
 describe('fill engine', () => {
   it('fills linearly at the configured rate', () => {
@@ -82,39 +86,40 @@ describe('fill engine — surge (accelerating pour)', () => {
 
 describe('scoring', () => {
   const l1 = getLevel(1);
-  const { min, max } = bandBounds(l1);
+  const band1 = baseBand(l1);
+  const { min, max } = band1;
   const c = l1.bandCenter;
 
   it('is inclusive at both band edges', () => {
-    expect(scoreAttempt(min, l1).hit).toBe(true);
-    expect(scoreAttempt(max, l1).hit).toBe(true);
-    expect(scoreAttempt(min - 0.001, l1).hit).toBe(false);
-    expect(scoreAttempt(max + 0.001, l1).hit).toBe(false);
+    expect(scoreAttempt(min, band1).hit).toBe(true);
+    expect(scoreAttempt(max, band1).hit).toBe(true);
+    expect(scoreAttempt(min - 0.001, band1).hit).toBe(false);
+    expect(scoreAttempt(max + 0.001, band1).hit).toBe(false);
   });
 
   it('counts an exact-edge release reached via the surge curve despite float error', () => {
     for (const l of [getLevel(7), getLevel(20)]) {
       const seg = startSegment(0, 0, l.fillRate, l.surge);
-      const lo = bandBounds(l).min;
+      const lo = baseBand(l).min;
       const edgeMs = secondsToReach(0, lo, l.fillRate, l.surge) * 1000;
-      expect(scoreAttempt(stopSegment(seg, edgeMs).volume, l).hit).toBe(true);
+      expect(scoreAttempt(stopSegment(seg, edgeMs).volume, baseBand(l)).hit).toBe(true);
     }
   });
 
   it('reports accuracy 1 at centre, 0 at edge, 0 on a miss', () => {
-    expect(scoreAttempt(c, l1).accuracy).toBe(1);
-    expect(scoreAttempt(c + l1.bandWidth / 4, l1).accuracy).toBeCloseTo(0.5);
-    expect(scoreAttempt(max, l1).accuracy).toBeCloseTo(0);
-    expect(scoreAttempt(95, l1).accuracy).toBe(0);
+    expect(scoreAttempt(c, band1).accuracy).toBe(1);
+    expect(scoreAttempt(c + l1.bandWidth / 4, band1).accuracy).toBeCloseTo(0.5);
+    expect(scoreAttempt(max, band1).accuracy).toBeCloseTo(0);
+    expect(scoreAttempt(95, band1).accuracy).toBe(0);
   });
 
   it('reports direction for "Too high" / "Too low" copy', () => {
-    expect(scoreAttempt(60, l1).direction).toBe('high');
-    expect(scoreAttempt(30, l1).direction).toBe('low');
+    expect(scoreAttempt(60, band1).direction).toBe('high');
+    expect(scoreAttempt(30, band1).direction).toBe('low');
   });
 
   it('treats overflow as a miss', () => {
-    const s = scoreAttempt(100, l1, true);
+    const s = scoreAttempt(100, band1, true);
     expect(s.hit).toBe(false);
     expect(s.overflow).toBe(true);
   });

@@ -6,7 +6,8 @@ import { selectRun, selectTargetAllowed, selectVolume } from '../selectors';
 import { Harness } from './harness';
 
 const T = GAMEPLAY.timing;
-const R1 = getLevel(1).fillRate; // level 1 has no surge: volume = R1 × seconds
+const R1 = getLevel(1).fillRate;
+const L = GAMEPLAY.startingLives; // level 1 has no surge: volume = R1 × seconds
 
 describe('state machine — core flow', () => {
   it('walks MENU → LEVEL_INTRO → READY → FILLING → SETTLING → RESULT → LEVEL_INTRO', () => {
@@ -53,7 +54,7 @@ describe('state machine — core flow', () => {
     expect(h.events('lifeLost')).toHaveLength(0);
     h.wait(20);
     expect(h.events('lifeLost')).toHaveLength(1);
-    expect(selectRun(h.game.state)?.lives).toBe(4);
+    expect(selectRun(h.game.state)?.lives).toBe(L - 1);
   });
 
   it('keeps lives on pass, retries the same level on fail', () => {
@@ -61,10 +62,10 @@ describe('state machine — core flow', () => {
     h.startRun();
     h.attempt(false);
     h.next();
-    expect(selectRun(h.game.state)).toMatchObject({ level: 1, lives: 4 });
+    expect(selectRun(h.game.state)).toMatchObject({ level: 1, lives: L - 1 });
     h.attempt(true);
     h.next();
-    expect(selectRun(h.game.state)).toMatchObject({ level: 2, lives: 4 });
+    expect(selectRun(h.game.state)).toMatchObject({ level: 2, lives: L - 1 });
   });
 
   it('freezes volume at release and reports it through SETTLING/RESULT', () => {
@@ -78,18 +79,18 @@ describe('state machine — core flow', () => {
 });
 
 describe('state machine — lives, game over, victory', () => {
-  it('game over on the 5th miss, then hard reset to level 1 with 5 lives', () => {
+  it('game over on the last miss, then hard reset to level 1 with full lives', () => {
     const h = new Harness();
     h.startRun();
     h.attempt(true);
     h.next();
     h.attempt(true);
     h.next(); // level 3
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < L - 1; i++) {
       h.attempt(false);
       h.next();
     }
-    h.attempt(false); // 5th miss
+    h.attempt(false); // last life
     expect(h.game.state.tag).toBe('RESULT');
     expect(h.events('gameOver')).toHaveLength(0);
     h.wait(T.terminalDelayMs);
@@ -99,7 +100,7 @@ describe('state machine — lives, game over, victory', () => {
     h.input('CONTINUE'); // not a valid action on GAME_OVER
     expect(h.game.state.tag).toBe('GAME_OVER');
     h.input('START_RUN');
-    expect(selectRun(h.game.state)).toMatchObject({ level: 1, lives: 5 });
+    expect(selectRun(h.game.state)).toMatchObject({ level: 1, lives: L });
   });
 
   it('victory after passing level 20', () => {
@@ -111,7 +112,7 @@ describe('state machine — lives, game over, victory', () => {
       if (l < 20) h.next();
     }
     h.wait(T.terminalDelayMs);
-    expect(h.game.state).toEqual({ tag: 'VICTORY', livesRemaining: 5 });
+    expect(h.game.state).toEqual({ tag: 'VICTORY', livesRemaining: L });
     expect(h.events('levelPass')).toHaveLength(20);
     expect(h.events('victory')).toHaveLength(1);
   });
@@ -230,14 +231,14 @@ describe('state machine — pause / interruption', () => {
     h.startRun();
     h.input('PAUSE');
     h.input('RESTART_LEVEL');
-    expect(selectRun(h.game.state)?.lives).toBe(5);
+    expect(selectRun(h.game.state)?.lives).toBe(L);
     h.wait(T.introMs);
     h.input('FILL_PRESS');
     h.wait(300);
     h.input('PAUSE');
     h.input('RESTART_LEVEL');
     h.input('RESTART_LEVEL'); // second press lands in LEVEL_INTRO: ignored
-    expect(selectRun(h.game.state)).toMatchObject({ level: 1, lives: 4 });
+    expect(selectRun(h.game.state)).toMatchObject({ level: 1, lives: L - 1 });
     expect(h.events('lifeLost')[0].payload.cause).toBe('restart');
   });
 
@@ -253,7 +254,7 @@ describe('state machine — pause / interruption', () => {
   it('paid restart on the last life ends the game', () => {
     const h = new Harness();
     h.startRun();
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < L - 1; i++) {
       h.attempt(false);
       h.next();
     }

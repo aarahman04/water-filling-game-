@@ -2,7 +2,17 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useGameState, useLatest, useReducedMotion, useRerenderAt, useSave } from './app/hooks';
 import { installPlatformHandlers } from './app/platform';
 import { controller, eventTime, now, progress, sfx } from './app/services';
-import { GAMEPLAY, LEVEL_COUNT, getLevel, selectRun, type GameState, type PausableState } from './game';
+import {
+  GAMEPLAY,
+  LEVELS,
+  LEVEL_COUNT,
+  TWIST_HINTS,
+  getLevel,
+  selectRun,
+  twistLabels,
+  type GameState,
+  type PausableState,
+} from './game';
 import type { SaveData } from './persistence/progress';
 import { MOTION, TIERS } from './theme/theme';
 import { FillButton } from './ui/FillButton';
@@ -16,6 +26,12 @@ type Overlay = 'none' | 'settings' | 'tutorial' | 'confirmRestart' | 'confirmQui
 const pad = (n: number) => String(n).padStart(2, '0');
 const targetVisibility = GAMEPLAY.targetVisibility;
 const bandVisible = targetVisibility === 'always';
+
+/** Twists that appear for the first time on `level` (to explain them once). */
+function newTwists(level: number): string[] {
+  const seen = new Set(LEVELS.slice(0, level - 1).flatMap((l) => twistLabels(l.twists)));
+  return twistLabels(getLevel(level).twists).filter((t) => !seen.has(t));
+}
 
 export default function App() {
   const state = useGameState();
@@ -217,36 +233,48 @@ function describe(state: GameState, save: SaveData, play: () => void, cont: () =
     case 'MENU':
       return {
         prompt: <span className="prompt__sub">Pour. Release. Land on the line.</span>,
-        helper: save.bestLevel > 0 ? `Best: level ${save.bestLevel} of ${LEVEL_COUNT} · ${save.gamesPlayed} ${save.gamesPlayed === 1 ? 'game' : 'games'}` : '20 levels · 5 lives',
+        helper:
+          save.bestLevel > 0
+            ? `Best: level ${save.bestLevel} of ${LEVEL_COUNT} · ${save.gamesPlayed} ${save.gamesPlayed === 1 ? 'game' : 'games'}`
+            : `${LEVEL_COUNT} levels · ${GAMEPLAY.startingLives} lives · no mercy`,
         button: { kind: 'action', label: 'Play', onActivate: play },
         rerenderAt: [],
       };
     case 'LEVEL_INTRO': {
       const introAt = s.readyAt - GAMEPLAY.timing.introMs;
       const swapAt = introAt + MOTION.intro.bandInAt;
+      const twists = twistLabels(getLevel(s.run.level).twists);
+      const fresh = newTwists(s.run.level);
+      const hidden = getLevel(s.run.level).twists.hidden;
       return {
         prompt:
           t < swapAt ? (
             <span className="prompt__level" key={`lvl-${s.run.level}-${introAt}`}>LEVEL {pad(s.run.level)}</span>
+          ) : fresh.length > 0 ? (
+            <span className="prompt__text prompt__text--warn">
+              New: {fresh[0]}. {TWIST_HINTS[fresh[0]]}
+            </span>
           ) : (
-            <span className="prompt__text">{bandVisible ? 'Watch the band' : 'Remember the line'}</span>
+            <span className="prompt__text">{hidden || !bandVisible ? 'Remember the band' : 'Watch the band'}</span>
           ),
-        helper: 'Get ready',
+        helper: twists.length ? <span className="twists">{twists.join(' · ')}</span> : 'Get ready',
         button: { kind: 'disabled', label: 'Get ready' },
         rerenderAt: [swapAt],
       };
     }
-    case 'READY':
+    case 'READY': {
+      const tw = getLevel(s.run.level).twists;
       return {
-        prompt: <span className="prompt__text">{bandVisible ? 'Stop inside the band' : ' '}</span>,
+        prompt: <span className="prompt__text">{readyPrompt(tw)}</span>,
         helper: s.volume > 0 ? 'Hold to keep filling. Release to stop.' : 'Hold to fill. Release to stop.',
         button: { kind: 'hold', label: 'Fill', filling: false },
         rerenderAt: [],
       };
+    }
     case 'FILLING':
       return {
-        prompt: <span className="prompt__text">{bandVisible ? 'Stop inside the band' : ' '}</span>,
-        helper: bandVisible ? 'Release inside the band' : 'Aim for the line you remember',
+        prompt: <span className="prompt__text">{readyPrompt(getLevel(s.run.level).twists)}</span>,
+        helper: getLevel(s.run.level).twists.hidden || !bandVisible ? 'Aim for the band you remember' : 'Release inside the band',
         button: { kind: 'hold', label: 'Release to stop', filling: true },
         rerenderAt: [],
       };
@@ -284,4 +312,12 @@ function describe(state: GameState, save: SaveData, play: () => void, cont: () =
     case 'VICTORY':
       return { prompt: ' ', helper: ' ', button: null, rerenderAt: [] };
   }
+}
+
+function readyPrompt(tw: ReturnType<typeof getLevel>['twists']): string {
+  if (tw.hidden || !bandVisible) return 'Where was the band?';
+  if (tw.fog) return 'The water vanishes in the fog';
+  if (tw.moving) return 'Catch the moving band';
+  if (tw.drip) return 'Stop early. It drips.';
+  return 'Stop inside the band';
 }

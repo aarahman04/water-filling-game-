@@ -19,8 +19,9 @@
 import { GAMEPLAY, type GameplayConfig } from './config/gameplay';
 import { LEVELS, type LevelConfig } from './config/levels';
 import { getLevel } from './difficulty';
-import { startSegment, stopSegment, volumeAt } from './fillEngine';
+import { MAX_VOLUME, pourMsAt, startSegment, stopSegment, volumeAt } from './fillEngine';
 import { scoreAttempt } from './scoring';
+import { bandAt, dripOf, flowZones, rollSetup } from './twists';
 import type {
   FillingState,
   GameAction,
@@ -67,30 +68,42 @@ function step(state: GameState, action: GameAction, config: MachineConfig, emit:
   const { timing } = gameplay;
   const now = action.now;
 
+  // Every intro is a fresh attempt: new twist roll (band position, movement phase, spike).
   const enterIntro = (run: RunContext): GameState => {
     const readyAt = now + timing.introMs;
+    const attempt = run.attempt + 1;
+    const setup = rollSetup(getLevel(run.level, levels), run.seed, attempt);
     emit('levelIntro', { level: run.level, lives: run.lives, at: now, readyAt });
-    return { tag: 'LEVEL_INTRO', run: { ...run, pouredThisAttempt: false }, readyAt };
+    return { tag: 'LEVEL_INTRO', run: { ...run, pouredThisAttempt: false, attempt, setup }, readyAt };
   };
-  const startRun = (): GameState => {
+  const startRun = (seed: number): GameState => {
     emit('runStart', { at: now });
-    return enterIntro({ level: 1, lives: gameplay.startingLives, pouredThisAttempt: false });
+    const first = getLevel(1, levels);
+    return enterIntro({
+      level: 1,
+      lives: gameplay.startingLives,
+      pouredThisAttempt: false,
+      seed,
+      attempt: 0,
+      setup: rollSetup(first, seed, 0),
+    });
   };
+  const seedOf = (a: GameAction) => (a.type === 'START_RUN' && a.seed !== undefined ? a.seed : Math.floor(now * 1000) ^ 0x5bd1e995);
 
   switch (state.tag) {
     case 'MENU':
-      return action.type === 'START_RUN' ? startRun() : state;
+      return action.type === 'START_RUN' ? startRun(seedOf(action)) : state;
 
     case 'GAME_OVER':
     case 'VICTORY':
-      if (action.type === 'START_RUN') return startRun();
+      if (action.type === 'START_RUN') return startRun(seedOf(action));
       if (action.type === 'QUIT') return { tag: 'MENU' };
       return state;
 
     case 'LEVEL_INTRO':
       if (action.type === 'TICK' && now >= state.readyAt) {
         emit('ready', { level: state.run.level, volume: 0, at: now });
-        return { tag: 'READY', run: state.run, volume: 0 };
+        return { tag: 'READY', run: state.run, volume: 0, pourMs: 0 };
       }
       if (action.type === 'PAUSE') return pause(state, now, emit);
       // FILL_PRESS here is deliberately dropped: a press made while disabled must never
@@ -100,7 +113,8 @@ function step(state: GameState, action: GameAction, config: MachineConfig, emit:
     case 'READY':
       if (action.type === 'FILL_PRESS') {
         const cfg = getLevel(state.run.level, levels);
-        const segment = startSegment(now, state.volume, cfg.fillRate, cfg.surge);
+        const zones = flowZones(cfg, state.run.setup);
+        const segment = startSegment(now, state.volume, cfg.fillRate, cfg.surge, zones, state.pourMs);
         emit('fillStart', { level: cfg.level, at: now, startVolume: segment.startVolume, rate: cfg.fillRate, surge: cfg.surge });
         return { tag: 'FILLING', run: { ...state.run, pouredThisAttempt: true }, segment };
       }
@@ -116,8 +130,9 @@ function step(state: GameState, action: GameAction, config: MachineConfig, emit:
       if (action.type === 'PAUSE') {
         // Interrupted pour: freeze volume, no scoring. Resume requires a fresh press.
         const volume = volumeAt(state.segment, now);
+        const pourMs = pourMsAt(state.segment, now);
         emit('fillStop', { level: state.run.level, at: now, volume, reason: 'interrupted' });
-        return pause({ tag: 'READY', run: state.run, volume }, now, emit, 'FILLING');
+        return pause({ tag: 'READY', run: state.run, volume, pourMs }, now, emit, 'FILLING');
       }
       return state;
 
@@ -179,7 +194,11 @@ function release(
 ): SettlingState {
   const cfg = getLevel(state.run.level, levels);
   const stop = stopSegment(state.segment, now);
-  const score = scoreAttempt(stop.volume, cfg, stop.overflow);
+  const band = bandAt(cfg, state.run.setup, pourMsAt(state.segment, stop.stoppedAt));
+  // Drip twist: the nozzle keeps adding after release; dripping to the rim is an overflow.
+  const final = Math.min(MAX_VOLUME, stop.volume + dripOf(cfg));
+  const overflow = stop.overflow || final >= MAX_VOLUME;
+  const score = scoreAttempt(final, band, overflow, stop.volume);
   const effectiveReason = stop.overflow ? 'overflow' : reason;
   emit('fillStop', { level: cfg.level, at: stop.stoppedAt, volume: stop.volume, reason: effectiveReason });
   return {
