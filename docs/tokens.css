@@ -1,0 +1,126 @@
+/* Fill Line v1. CSS pixels refer to the 360 x 800 design viewport. */
+:root {
+  color-scheme: dark;
+  --bg-top: #101f2c;
+  --bg-mid: #213e50;
+  --bg-bottom: #0b1722;
+  --bg-halo: #79b9ca;
+  --surface: #142a38;
+  --surface-raised: #203e4d;
+  --surface-hover: #294c5d;
+  --scrim: rgb(6 15 23 / 76%);
+  --text: #f2f6f5;
+  --text-secondary: #b8cbd3;
+  --text-muted: #9db4c0;
+  --accent: #f3dfb3;
+  --accent-pressed: #d9bf8d;
+  --accent-ink: #182c37;
+  --success: #91e6ba;
+  --fail: #ff998d;
+  --life: #f3c2b6;
+  --life-empty: #819aa9;
+  --focus: #f6e8c9;
+  --glass-tint: rgb(173 221 234 / 7%);
+  --glass-edge: rgb(213 244 248 / 48%);
+  --glass-highlight: rgb(246 254 255 / 76%);
+  --glass-right: rgb(199 240 250 / 28%);
+  --target-fill: rgb(243 223 179 / 16%);
+  --target-edge: #f3dfb3;
+  --water-top: #d7f7f5;
+  --water-upper: #76d7e5;
+  --water-body: #229dc2;
+  --water-deep: #115979;
+  --water-top-alpha: 0.9;
+  --water-upper-alpha: 0.8;
+  --water-body-alpha: 0.76;
+  --water-deep-alpha: 0.9;
+  --water-edge: #d5fcff;
+  --water-meniscus: #e5ffff;
+  --metal-light: #b6c9ce;
+  --metal-mid: #5e7987;
+  --metal-dark: #233b49;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-ui: "Manrope", system-ui, sans-serif;
+  --text-title: 64px;
+  --text-hero: 48px;
+  --text-heading: 32px;
+  --text-subheading: 24px;
+  --text-body: 16px;
+  --text-label: 14px;
+  --text-caption: 12px;
+  --weight-display: 600;
+  --weight-body: 500;
+  --weight-action: 700;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --radius-small: 8px;
+  --radius-control: 20px;
+  --radius-panel: 24px;
+  --radius-pill: 999px;
+  --stroke-fine: 1px;
+  --stroke-icon: 1.75px;
+  --stroke-focus: 2px;
+  --shadow-control: 0 8px 24px rgb(3 12 19 / 24%), inset 0 1px 0 rgb(255 255 255 / 44%);
+  --shadow-panel: 0 24px 64px rgb(0 8 16 / 40%);
+  --shadow-floor: 0 12px 20px rgb(1 10 16 / 32%);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --duration-press: 70ms;
+  --duration-release: 130ms;
+  --duration-reveal: 140ms;
+  --duration-ui: 180ms;
+  --duration-transition: 320ms;
+  --duration-settle: 480ms;
+  --target-preview: 1000ms;
+  --target-hide: 160ms;
+  --touch-min: 48px;
+  --button-height: 64px;
+  --page-gutter: 24px;
+  --game-max-width: 480px;
+  --game-max-height: 960px;
+  --glass-width: 192px;
+  --glass-height: 360px;
+  --water-travel: 320px;
+  --canvas-dpr-cap: 2;
+  --z-background: 0;
+  --z-stage: 10;
+  --z-ui: 20;
+  --z-overlay: 30;
+  --z-dialog: 40;
+}
+
+[data-water="lagoon"] {
+  --water-top: #d9faf0;
+  --water-upper: #7cddc9;
+  --water-body: #24a9ae;
+  --water-deep: #12667c;
+}
+[data-water="glacier"] {
+  --water-top: #e0f6ff;
+  --water-upper: #83d8f3;
+  --water-body: #368fd1;
+  --water-deep: #244f85;
+}
+[data-water="deep"] {
+  --water-top: #e6efff;
+  --water-upper: #a3cdf3;
+  --water-body: #627fc8;
+  --water-deep: #334773;
+}
+
+/* Reduced motion changes decoration, never scoring or preview duration. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-press: 0ms;
+    --duration-release: 0ms;
+    --duration-ui: 100ms;
+    --duration-transition: 100ms;
+  }
+}

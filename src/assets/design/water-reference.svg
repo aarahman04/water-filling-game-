@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="320" viewBox="0 0 160 320">
+  <defs>
+    <linearGradient id="wa-depth" x2="0" y2="1"><stop stop-color="#d7f7f5" stop-opacity=".90"/><stop offset=".06" stop-color="#76d7e5" stop-opacity=".80"/><stop offset=".4" stop-color="#229dc2" stop-opacity=".76"/><stop offset="1" stop-color="#115979" stop-opacity=".90"/></linearGradient>
+    <linearGradient id="wa-edges"><stop stop-color="#d5fcff" stop-opacity=".34"/><stop offset=".07" stop-color="#d5fcff" stop-opacity=".1"/><stop offset=".18" stop-color="#d5fcff" stop-opacity="0"/><stop offset=".82" stop-color="#d5fcff" stop-opacity="0"/><stop offset=".93" stop-color="#d5fcff" stop-opacity=".1"/><stop offset="1" stop-color="#d5fcff" stop-opacity=".3"/></linearGradient>
+  </defs>
+  <path d="M0 144Q40 142 80 144T160 144V320H0Z" fill="url(#wa-depth)"/>
+  <path d="M0 144Q40 142 80 144T160 144V320H0Z" fill="url(#wa-edges)"/>
+  <ellipse cx="80" cy="144" rx="79" ry="3" fill="#d7f7f5" fill-opacity=".32"/>
+  <path d="M1 144Q40 142 80 144T159 144" fill="none" stroke="#e5ffff" stroke-opacity=".72" stroke-width="1.5"/>
+  <g fill="none" stroke="#e5ffff" stroke-opacity=".28"><circle cx="86" cy="179" r="2"/><circle cx="74" cy="218" r="1.2"/><circle cx="91" cy="238" r="1.5"/></g>
+</svg>

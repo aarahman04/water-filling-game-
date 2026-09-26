@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="288" height="32" viewBox="0 0 288 32" color="#f2f6f5">
+  <defs>
+    <symbol id="life" viewBox="0 0 24 24"><path d="M12 3C10 6 5 11 5 15a7 7 0 0 0 14 0c0-4-5-9-7-12Z" fill="currentColor"/><path d="M8 15c0 2 1 3 2 3" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="life-empty" viewBox="0 0 24 24"><path d="M12 3C10 6 5 11 5 15a7 7 0 0 0 14 0c0-4-5-9-7-12Z" fill="none" stroke="currentColor" stroke-width="1.75"/></symbol>
+    <symbol id="pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
+    <symbol id="settings" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M9 4v4M15 10v4M8 16v4" stroke-width="3"/></g></symbol>
+    <symbol id="sound" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="M17 8q4 4 0 8M20 5q6 7 0 14"/></g></symbol>
+    <symbol id="music" viewBox="0 0 24 24"><path d="M9 17V6l11-2v11M9 9l11-2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><ellipse cx="6" cy="18" rx="3" ry="2.5" fill="currentColor"/><ellipse cx="17" cy="16" rx="3" ry="2.5" fill="currentColor"/></symbol>
+    <symbol id="restart" viewBox="0 0 24 24"><path d="M5 9a8 8 0 1 1 0 6M5 4v5h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+  <use href="#life" x="4" y="4" width="24" height="24" color="#f3c2b6"/>
+  <use href="#life-empty" x="36" y="4" width="24" height="24" color="#819aa9"/>
+  <use href="#pause" x="68" y="4" width="24" height="24"/>
+  <use href="#check" x="100" y="4" width="24" height="24"/>
+  <use href="#close" x="132" y="4" width="24" height="24"/>
+  <use href="#settings" x="164" y="4" width="24" height="24"/>
+  <use href="#sound" x="196" y="4" width="24" height="24"/>
+  <use href="#music" x="228" y="4" width="24" height="24"/>
+  <use href="#restart" x="260" y="4" width="24" height="24"/>
+</svg>

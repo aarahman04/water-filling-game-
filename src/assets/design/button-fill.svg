@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="312" height="64" viewBox="0 0 312 64">
+  <defs><linearGradient id="bt-face" x2="0" y2="1"><stop stop-color="#f8e9c9"/><stop offset=".55" stop-color="#f3dfb3"/><stop offset="1" stop-color="#e7cd9e"/></linearGradient></defs>
+  <rect x=".5" y=".5" width="311" height="63" rx="19.5" fill="url(#bt-face)"/>
+  <path d="M20 1H292Q311 1 311 20" fill="none" stroke="#fff" stroke-opacity=".44"/>
+</svg>

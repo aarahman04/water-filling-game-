@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fill Line — design reference</title>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0b1722; color: var(--text); font: 500 16px/1.6 var(--font-ui); }
+    main { max-width: 1180px; margin: auto; padding: 48px 24px; }
+    h1,h2,h3,p { margin: 0 0 16px; }
+    h1,h2,h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.1; }
+    h1 { font-size: clamp(40px,6vw,64px); letter-spacing: 1px; }
+    h2 { font-size: 32px; margin-top: 32px; }
+    h3 { font-size: 24px; }
+    a { color: var(--accent); text-underline-offset: 4px; }
+    .eyebrow { color: var(--accent); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+    .intro { max-width: 760px; color: var(--text-secondary); }
+    .layout { display: grid; grid-template-columns: 360px minmax(0,1fr); gap: 56px; align-items: start; margin-top: 40px; }
+    .phone { position: relative; width: 360px; height: 800px; overflow: hidden; background: url('assets/background.svg') center/cover; border-radius: 24px; box-shadow: var(--shadow-panel); isolation: isolate; }
+    .hud { position: absolute; inset: 32px 24px auto; height: 48px; display: flex; align-items: center; justify-content: space-between; }
+    .level { font-size: 20px; line-height: 24px; font-variant-numeric: tabular-nums; }
+    .level small { display: block; font-size: 12px; line-height: 16px; color: var(--text-secondary); }
+    .life-row { position: absolute; left: 94px; width: 124px; height: 24px; color: var(--life); }
+    .pause { display: flex; align-items: center; justify-content: center; gap: 6px; width: 48px; height: 48px; }
+    .pause::before,.pause::after { content: ''; width: 3px; height: 20px; background: var(--text); border-radius: 2px; }
+    .prompt { position: absolute; top: 112px; width: 100%; text-align: center; font-size: 14px; }
+    .spout { position: absolute; left: 148px; top: 148px; width: 64px; height: 64px; }
+    .stand { position: absolute; left: 64px; top: 570px; width: 232px; height: 48px; }
+    .glass { position: absolute; left: 84px; top: 222px; width: 192px; height: 360px; }
+    .water { position: absolute; left: 100px; top: 238px; width: 160px; height: 320px; border-radius: 0 0 8px 8px; }
+    .band { position: absolute; left: 100px; top: 366px; width: 160px; height: 32px; }
+    .tier { position: absolute; top: 628px; width: 100%; font-size: 12px; letter-spacing: 1.5px; text-align: center; color: var(--text-secondary); }
+    .helper { position: absolute; top: 652px; width: 100%; text-align: center; font-size: 14px; color: var(--text-secondary); }
+    .fill { position: absolute; left: 24px; top: 680px; width: 312px; height: 64px; border: 0; border-radius: 20px; background: url('assets/button-fill.svg') center/100% 100%; color: var(--accent-ink); box-shadow: var(--shadow-control); font: 700 16px var(--font-ui); cursor: pointer; transition: transform 130ms var(--ease-out); }
+    .fill:active { transform: scale(.975); background: var(--accent-pressed); transition-duration: 70ms; }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+    .sample-note { max-width: 360px; font-size: 12px; color: var(--text-muted); margin-top: 16px; }
+    .swatches { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+    .swatch { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+    .swatch i { width: 36px; height: 36px; flex: none; background: var(--swatch); border: 1px solid #ffffff22; border-radius: 50%; }
+    .swatch code { display: block; color: var(--text-muted); font-size: 12px; }
+    .sequence { padding: 0; list-style: none; }
+    .sequence li { padding: 12px 0; border-top: 1px solid #ffffff1a; }
+    .sequence strong { display: block; color: var(--accent); }
+    .sequence span { color: var(--text-secondary); font-size: 14px; }
+    .materials { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+    figure { margin: 0; padding: 20px 12px; background: var(--surface); border-radius: 16px; }
+    figure img { display: block; width: 100%; height: 180px; object-fit: contain; }
+    figcaption { color: var(--text-secondary); font-size: 12px; margin-top: 12px; }
+    .icons { max-width: 100%; height: auto; padding: 16px; background: var(--surface); border-radius: 12px; }
+    .caustic { position: absolute; left: 112px; top: 606px; width: 136px; height: 12px; border-top: 1.5px solid #a4ecf4; border-radius: 50%; opacity: .09; animation: caustic 6s ease-in-out infinite alternate; }
+    @keyframes caustic { from { transform: translateX(-2px); opacity: .05; } to { transform: translateX(2px); opacity: .09; } }
+    footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #ffffff1a; color: var(--text-muted); font-size: 14px; }
+    @media (max-width: 850px) { .layout { grid-template-columns: 1fr; gap: 24px; } .specimen { margin: auto; } }
+    @media (max-width: 407px) { main { padding: 32px 12px; } .specimen { max-width: 100%; overflow-x: auto; } .materials { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { .caustic { animation: none; } .fill { transition: none; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Visual &amp; motion direction · 01</p>
+  <h1>FILL LINE</h1>
+  <p class="intro">An illuminated glass instrument. Cool mineral water, reflected window light, and warm ivory controls. This sheet shows the materials; the handoff specifies every screen and animation.</p>
+  <p><a href="design-handoff.md">Complete design handoff</a> · <a href="tokens.css">CSS tokens</a> · <a href="progress.md">Progress log</a></p>
+  <div class="layout">
+    <section class="specimen" aria-label="Baseline composition">
+      <div class="phone">
+        <div class="hud">
+          <div class="level"><small>LEVEL</small>01 / 20</div>
+          <svg class="life-row" viewBox="0 0 124 24" role="img" aria-label="5 lives">
+            <defs><path id="sheet-life" d="M10 2C8 5 3 10 3 14a7 7 0 0 0 14 0c0-4-5-9-7-12Z"/></defs>
+            <g fill="currentColor"><use href="#sheet-life"/><use href="#sheet-life" x="26"/><use href="#sheet-life" x="52"/><use href="#sheet-life" x="78"/><use href="#sheet-life" x="104"/></g>
+          </svg>
+          <span class="pause" role="img" aria-label="Pause icon specimen"></span>
+        </div>
+        <p class="prompt">On the line</p>
+        <img class="spout" src="assets/spout.svg" alt="">
+        <div class="caustic"></div>
+        <img class="stand" src="assets/stand.svg" alt="">
+        <img class="glass" src="assets/glass-back.svg" alt="">
+        <img class="water" src="assets/water-reference.svg" alt="">
+        <img class="band" src="assets/target-zone.svg" alt="">
+        <img class="glass" src="assets/glass-front.svg" alt="Glass cylinder with water centered in a target band">
+        <div class="tier">MINERAL</div>
+        <p class="helper">Material and button feedback sample</p>
+        <button class="fill" type="button" aria-describedby="sheet-note">Fill</button>
+      </div>
+      <p class="sample-note" id="sheet-note">360 × 800 composition study. Water and band are shown together for material inspection, using a sample target at 55%. Press Fill to preview its CSS press feedback. This sheet does not run game logic. Fonts use system fallbacks.</p>
+    </section>
+    <section aria-label="Design specifications summary">
+      <h2>Light, glass, water</h2>
+      <p class="intro">Two static glass layers enclose the animated water. A narrow left glint and brighter liquid edges suggest thickness and refraction without a full-scene shader.</p>
+      <div class="swatches">
+        <div class="swatch"><i style="--swatch:#213e50"></i><span>Room blue<code>#213E50</code></span></div>
+        <div class="swatch"><i style="--swatch:#f3dfb3"></i><span>Ivory control<code>#F3DFB3</code></span></div>
+        <div class="swatch"><i style="--swatch:#229dc2"></i><span>Mineral water<code>#229DC2</code></span></div>
+        <div class="swatch"><i style="--swatch:#91e6ba"></i><span>Success<code>#91E6BA</code></span></div>
+        <div class="swatch"><i style="--swatch:#ff998d"></i><span>Miss<code>#FF998D</code></span></div>
+        <div class="swatch"><i style="--swatch:#f3c2b6"></i><span>Life<code>#F3C2B6</code></span></div>
+      </div>
+      <h2>The attempt, in time</h2>
+      <ol class="sequence">
+        <li><strong>Preview · 1,000ms fully visible</strong><span>Remember the actual acceptance band. Fade out for 160ms, then enable Fill.</span></li>
+        <li><strong>Pour · linear volume rise</strong><span>One continuous hold. Four water palettes and stronger surface movement as levels increase.</span></li>
+        <li><strong>Release · volume locks immediately</strong><span>Band returns in 140ms. Two damped oscillations settle over 480ms.</span></li>
+        <li><strong>Result · after 480ms</strong><span>A check and light sweep, or a 180ms stage shake and a lost droplet. Result remains until the next action.</span></li>
+      </ol>
+      <h2>Source layers</h2>
+      <div class="materials">
+        <figure><img src="assets/glass-back.svg" alt="Rear glass layer"><figcaption>01 · Rear wall</figcaption></figure>
+        <figure><img src="assets/water-reference.svg" alt="Water gradient and bright edges"><figcaption>02 · Water material</figcaption></figure>
+        <figure><img src="assets/glass-front.svg" alt="Front rim and specular highlights"><figcaption>03 · Front reflection</figcaption></figure>
+      </div>
+      <h2>Icon family</h2>
+      <img class="icons" src="assets/icons.svg" width="288" height="32" alt="Life, empty life, pause, check, close, settings, sound, music, restart">
+      <p class="sample-note">24px symbols, 1.75px standard strokes, 48px minimum interactive targets.</p>
+    </section>
+  </div>
+  <footer>Source artwork + specification. Performance and gameplay balance require validation in the implemented game. All progress is recorded in <a href="progress.md">docs/progress.md</a>.</footer>
+</main>
+</body>
+</html>

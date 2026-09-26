@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Fill Line</string>
+    <string name="title_activity_main">Fill Line</string>
+    <string name="package_name">com.fillline.game</string>
+    <string name="custom_url_scheme">com.fillline.game</string>
+</resources>

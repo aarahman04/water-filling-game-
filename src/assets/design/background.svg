@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="800" viewBox="0 0 360 800">
+  <defs>
+    <linearGradient id="bg-base" x2="0" y2="1"><stop stop-color="#101f2c"/><stop offset=".52" stop-color="#213e50"/><stop offset="1" stop-color="#0b1722"/></linearGradient>
+    <radialGradient id="bg-halo"><stop stop-color="#79b9ca" stop-opacity=".16"/><stop offset="1" stop-color="#79b9ca" stop-opacity="0"/></radialGradient>
+    <linearGradient id="bg-pane"><stop stop-color="#bfdfe2" stop-opacity="0"/><stop offset=".55" stop-color="#bfdfe2" stop-opacity=".035"/><stop offset="1" stop-color="#bfdfe2" stop-opacity="0"/></linearGradient>
+    <radialGradient id="bg-floor"><stop stop-color="#68b7c9" stop-opacity=".11"/><stop offset="1" stop-color="#68b7c9" stop-opacity="0"/></radialGradient>
+  </defs>
+  <path fill="url(#bg-base)" d="M0 0h360v800H0z"/>
+  <ellipse cx="164" cy="345" rx="205" ry="290" fill="url(#bg-halo)"/>
+  <path fill="url(#bg-pane)" d="M-70 0H90l200 800H130z"/>
+  <path fill="url(#bg-pane)" d="M280 0h100l-45 800H235z"/>
+  <ellipse cx="180" cy="605" rx="170" ry="55" fill="url(#bg-floor)"/>
+</svg>

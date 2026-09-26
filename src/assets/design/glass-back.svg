@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="360" viewBox="0 0 192 360">
+  <defs>
+    <linearGradient id="gb-wall"><stop stop-color="#adddea" stop-opacity=".16"/><stop offset=".12" stop-color="#adddea" stop-opacity=".07"/><stop offset=".55" stop-color="#adddea" stop-opacity=".025"/><stop offset="1" stop-color="#adddea" stop-opacity=".13"/></linearGradient>
+    <linearGradient id="gb-base" x2="0" y2="1"><stop stop-color="#bbebef" stop-opacity=".04"/><stop offset=".55" stop-color="#bbebef" stop-opacity=".22"/><stop offset="1" stop-color="#bbebef" stop-opacity=".06"/></linearGradient>
+  </defs>
+  <path d="M8 16C8 2 184 2 184 16V334C184 360 8 360 8 334Z" fill="url(#gb-wall)"/>
+  <ellipse cx="96" cy="16" rx="88" ry="11" fill="#d5f4f8" fill-opacity=".03"/>
+  <path d="M8 16C8 1 184 1 184 16" fill="none" stroke="#d5f4f8" stroke-opacity=".3" stroke-width="1.25"/>
+  <path d="M16 327C16 346 176 346 176 327L184 334C184 358 8 358 8 334Z" fill="url(#gb-base)"/>
+</svg>

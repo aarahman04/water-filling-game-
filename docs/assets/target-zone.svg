@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="32" viewBox="0 0 160 32" preserveAspectRatio="none">
+  <path d="M0 0H160V32H0Z" fill="#f3dfb3" fill-opacity=".16"/>
+  <path d="M0 .75H160M0 31.25H160" fill="none" stroke="#f3dfb3" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+  <path d="M0 16H160" stroke="#f3dfb3" stroke-opacity=".46" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/>
+</svg>
