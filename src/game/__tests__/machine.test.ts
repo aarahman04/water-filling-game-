@@ -94,7 +94,7 @@ describe('state machine — lives, game over, victory', () => {
     expect(h.game.state.tag).toBe('RESULT');
     expect(h.events('gameOver')).toHaveLength(0);
     h.wait(T.terminalDelayMs);
-    expect(h.game.state).toEqual({ tag: 'GAME_OVER', levelReached: 3 });
+    expect(h.game.state).toMatchObject({ tag: 'GAME_OVER', levelReached: 3, revivesLeft: GAMEPLAY.maxRevivesPerRun });
     expect(h.events('gameOver')[0].payload).toMatchObject({ levelReached: 3 });
 
     h.input('CONTINUE'); // not a valid action on GAME_OVER
@@ -262,7 +262,7 @@ describe('state machine — pause / interruption', () => {
     h.wait(100);
     h.input('PAUSE');
     h.input('RESTART_LEVEL');
-    expect(h.game.state).toEqual({ tag: 'GAME_OVER', levelReached: 1 });
+    expect(h.game.state).toMatchObject({ tag: 'GAME_OVER', levelReached: 1, revivesLeft: GAMEPLAY.maxRevivesPerRun });
   });
 
   it('quit from pause returns to MENU', () => {

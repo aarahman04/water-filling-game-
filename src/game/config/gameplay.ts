@@ -15,6 +15,10 @@ export type TargetVisibility =
 
 export interface GameplayConfig {
   readonly startingLives: number;
+  /** Rewarded-ad revives allowed per run (GAME_OVER → same level). 0 disables revive. */
+  readonly maxRevivesPerRun: number;
+  /** Lives granted by one revive. */
+  readonly reviveLives: number;
   readonly targetVisibility: TargetVisibility;
   readonly timing: {
     /** LEVEL_INTRO duration before Fill is enabled (intro + band preview + hide). */
@@ -32,6 +36,8 @@ export interface GameplayConfig {
 
 export const GAMEPLAY: GameplayConfig = {
   startingLives: 3,
+  maxRevivesPerRun: 2,
+  reviveLives: 1,
   targetVisibility: 'always',
   timing: {
     introMs: 2300,

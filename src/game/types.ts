@@ -13,6 +13,8 @@ export interface RunContext {
   readonly seed: number;
   /** Attempts started this run (all levels); part of the roll so retries differ. */
   readonly attempt: number;
+  /** Revives used this run (rewarded ads). */
+  readonly revivesUsed: number;
   /** This attempt's rolled twists (band position, movement phase, spike location). */
   readonly setup: AttemptSetup;
 }
@@ -41,7 +43,14 @@ export type ResultState = {
   /** nextLevel/retry: CONTINUE accepted from here. gameOver/victory: auto-advance time. */
   readonly advanceAt: number;
 };
-export type GameOverState = { readonly tag: 'GAME_OVER'; readonly levelReached: number };
+export type GameOverState = {
+  readonly tag: 'GAME_OVER';
+  readonly levelReached: number;
+  /** The run as it ended (lives 0); REVIVE continues it. */
+  readonly run: RunContext;
+  /** Revives still available for this run. */
+  readonly revivesLeft: number;
+};
 export type VictoryState = { readonly tag: 'VICTORY'; readonly livesRemaining: number };
 
 export type PausableState = LevelIntroState | ReadyState | SettlingState | ResultState;
@@ -65,6 +74,8 @@ export type StateTag = GameState['tag'];
 export type GameAction =
   /** `seed` defaults to one derived from `now`; pass it for reproducible runs. */
   | { readonly type: 'START_RUN'; readonly now: number; readonly seed?: number }
+  /** Continue a finished run on the same level. Dispatch ONLY after the rewarded ad's reward callback. */
+  | { readonly type: 'REVIVE'; readonly now: number }
   | { readonly type: 'TICK'; readonly now: number }
   | { readonly type: 'FILL_PRESS'; readonly now: number }
   | { readonly type: 'FILL_RELEASE'; readonly now: number }
@@ -91,6 +102,7 @@ export interface GameEventMap {
   levelFail: { level: number; at: number; score: AttemptScore };
   lifeLost: { level: number; at: number; livesRemaining: number; cause: 'miss' | 'restart' };
   gameOver: { at: number; levelReached: number };
+  revive: { at: number; level: number; lives: number; revivesUsed: number };
   victory: { at: number; livesRemaining: number };
   pause: { at: number; from: StateTag };
   resume: { at: number; to: StateTag };

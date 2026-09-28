@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useSyncExternalStore, type RefObject } from 'react';
 import type { GameState } from '../game';
+import type { RewardedStatus } from '../ads';
 import type { SaveData } from '../persistence/progress';
-import { controller, progress } from './services';
+import { ads, controller, progress } from './services';
 
 export function useGameState(): GameState {
   return useSyncExternalStore(controller.subscribe, controller.getState);
@@ -9,6 +10,14 @@ export function useGameState(): GameState {
 
 export function useSave(): SaveData {
   return useSyncExternalStore(progress.subscribe, progress.get);
+}
+
+export function useRewardedStatus(): RewardedStatus {
+  return useSyncExternalStore(ads.subscribe, ads.rewardedStatus);
+}
+
+export function usePrivacyOptionsRequired(): boolean {
+  return useSyncExternalStore(ads.subscribe, ads.privacyOptionsRequired);
 }
 
 /** Re-render once performance.now() passes `at` (e.g. a CTA enable time). */
