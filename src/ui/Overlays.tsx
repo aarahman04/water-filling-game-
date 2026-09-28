@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useLatest } from '../app/hooks';
+import type { RewardedStatus } from '../ads';
 import { LEVELS, LEVEL_COUNT } from '../game';
 import type { SaveData } from '../persistence/progress';
 import { Icon } from './Icon';
@@ -159,7 +160,21 @@ export function Confirm({
   );
 }
 
-export function SettingsPanel({ save, onChange, onClose }: { save: SaveData; onChange: (patch: Partial<SaveData>) => void; onClose: () => void }) {
+export function SettingsPanel({
+  save,
+  onChange,
+  onClose,
+  privacyRequired,
+  privacyUrl,
+  onPrivacy,
+}: {
+  save: SaveData;
+  onChange: (patch: Partial<SaveData>) => void;
+  onClose: () => void;
+  privacyRequired: boolean;
+  privacyUrl: string;
+  onPrivacy: () => void;
+}) {
   const passed = save.bestAccuracy.filter((a) => a !== null).length;
   return (
     <Dialog title="Settings" onEscape={onClose} className="card--settings">
@@ -170,6 +185,24 @@ export function SettingsPanel({ save, onChange, onClose }: { save: SaveData; onC
         </button>
       </div>
       <PreferenceRows save={save} onChange={onChange} />
+      {(privacyRequired || privacyUrl) && (
+        <>
+          <hr className="card__divider" />
+          <h3 className="card__subheading">Privacy</h3>
+          <div className="card__actions card__actions--tight">
+            {privacyRequired && (
+              <button type="button" className="cta cta--secondary" onClick={onPrivacy}>
+                Ad privacy choices
+              </button>
+            )}
+            {privacyUrl && (
+              <a className="cta cta--secondary" href={privacyUrl} target="_blank" rel="noopener noreferrer">
+                Privacy policy
+              </a>
+            )}
+          </div>
+        </>
+      )}
       <hr className="card__divider" />
       <h3 className="card__subheading">Records</h3>
       <dl className="stats">
@@ -197,24 +230,81 @@ export function SettingsPanel({ save, onChange, onClose }: { save: SaveData; onC
           );
         })}
       </ol>
-      <p className="card__meta">Accuracy = how close to the band centre. Stored only on this device.</p>
+      <p className="card__meta">Accuracy = how close to the band centre. Game progress is stored only on this device.</p>
     </Dialog>
   );
 }
 
-export function GameOverCard({ levelReached, bestLevel, onRestart, onMenu }: { levelReached: number; bestLevel: number; onRestart: () => void; onMenu: () => void }) {
+export interface ReviveOffer {
+  status: RewardedStatus;
+  revivesLeft: number;
+  max: number;
+  busy: boolean;
+  notice: string | null;
+  onWatch: () => void;
+}
+
+export function GameOverCard({
+  levelReached,
+  bestLevel,
+  revive,
+  onRestart,
+  onMenu,
+}: {
+  levelReached: number;
+  bestLevel: number;
+  revive: ReviveOffer;
+  onRestart: () => void;
+  onMenu: () => void;
+}) {
+  const offer = revive.status !== 'off' && revive.revivesLeft > 0;
+  const watchLabel = revive.busy
+    ? 'Loading ad…'
+    : revive.status === 'ready'
+      ? 'Watch ad · +1 life'
+      : revive.status === 'loading'
+        ? 'Finding an ad…'
+        : 'Ad unavailable · tap to retry';
   return (
     <Dialog title="Out of lives" scrim={false} className="card--result">
       <h2 className="card__heading">Out of lives</h2>
       <p className="card__body">
         You reached level {levelReached} of {LEVEL_COUNT}.
       </p>
-      <p className="card__meta">Best ever: level {Math.max(bestLevel, levelReached)}</p>
+      {offer && (
+        <p className="card__body">
+          Your lives have run out. Want an extra life? Watch a short ad and keep going from level {levelReached}.
+        </p>
+      )}
+      <p className="card__meta">
+        Best ever: level {Math.max(bestLevel, levelReached)}
+        {offer && ` · ${revive.revivesLeft} of ${revive.max} extra lives left this run`}
+      </p>
+      {revive.notice && (
+        <p className="card__notice" role="status">
+          {revive.notice}
+        </p>
+      )}
       <div className="card__actions">
-        <button type="button" className="cta cta--primary cta--md" onClick={onRestart}>
+        {offer && (
+          <button
+            type="button"
+            className="cta cta--primary cta--md"
+            disabled={revive.busy || revive.status === 'loading'}
+            onClick={revive.onWatch}
+          >
+            {watchLabel}
+          </button>
+        )}
+        <button
+          type="button"
+          className={offer ? 'cta cta--secondary' : 'cta cta--primary cta--md'}
+          disabled={revive.busy}
+          onClick={onRestart}
+        >
           Restart from level 1
         </button>
-        <button type="button" className="cta cta--secondary" onClick={onMenu}>
+        <button type="button" className="cta cta--secondary" disabled={revive.busy} onClick={onMenu}>
           Main menu
         </button>
       </div>
@@ -244,7 +334,7 @@ export function VictoryCard({ livesRemaining, onPlayAgain, onMenu }: { livesRema
   );
 }
 
-export function TutorialCard({ bandAlwaysVisible, onDone }: { bandAlwaysVisible: boolean; onDone: () => void }) {
+export function TutorialCard({ bandAlwaysVisible, revivable, onDone }: { bandAlwaysVisible: boolean; revivable: boolean; onDone: () => void }) {
   return (
     <Dialog title="How to play" onEscape={onDone}>
       <h2 className="card__heading">How to play</h2>
@@ -257,7 +347,9 @@ export function TutorialCard({ bandAlwaysVisible, onDone }: { bandAlwaysVisible:
         It gets nasty fast: the band moves, hides, shrinks and changes place on every try. The flow surges without
         warning, fog hides the water, and the nozzle drips after you let go.
       </p>
-      <p className="card__meta">20 levels · 3 lives · a miss on your last life sends you back to level 1.</p>
+      <p className="card__meta">
+        20 levels · 3 lives · run out and you restart from level 1{revivable ? ' (or watch an ad for an extra life)' : ''}.
+      </p>
       <div className="card__actions">
         <button type="button" className="cta cta--primary cta--md" onClick={onDone}>
           Got it

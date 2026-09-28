@@ -5,11 +5,12 @@
 
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { controller, now } from './services';
+import { ads, controller, now } from './services';
 
 const IN_RUN = new Set(['LEVEL_INTRO', 'READY', 'FILLING', 'SETTLING', 'RESULT']);
 
 export function pauseIfInRun() {
+  if (ads.fullscreenActive) return; // a full-screen ad backgrounds the WebView; it isn't a user interruption
   if (IN_RUN.has(controller.state.tag)) controller.dispatch({ type: 'PAUSE', now: now() });
 }
 

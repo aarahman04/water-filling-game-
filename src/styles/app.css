@@ -393,6 +393,11 @@ button {
   transform: scale(0.98);
 }
 
+.cta--secondary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .cta-placeholder {
   height: var(--button-height);
 }
@@ -482,6 +487,24 @@ button {
   line-height: 16px;
   letter-spacing: 0.3px;
   color: var(--text-muted);
+}
+
+.card__notice {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-caption);
+  line-height: 16px;
+  color: var(--accent);
+}
+
+.card__actions--tight {
+  margin-top: 0;
+}
+
+a.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 
 .card__actions {

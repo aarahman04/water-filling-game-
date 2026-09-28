@@ -1,7 +1,16 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { useGameState, useLatest, useReducedMotion, useRerenderAt, useSave } from './app/hooks';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useGameState,
+  useLatest,
+  usePrivacyOptionsRequired,
+  useReducedMotion,
+  useRerenderAt,
+  useRewardedStatus,
+  useSave,
+} from './app/hooks';
 import { installPlatformHandlers } from './app/platform';
-import { controller, eventTime, now, progress, sfx } from './app/services';
+import { adCoordinator, ads, controller, eventTime, now, progress, sfx } from './app/services';
+import { PRIVACY_URL, type RewardOutcome } from './ads';
 import {
   GAMEPLAY,
   LEVELS,
@@ -39,11 +48,75 @@ export default function App() {
   const reducedMotion = useReducedMotion();
   const [overlay, setOverlay] = useState<Overlay>('none');
   const overlayRef = useLatest(overlay);
+  const rewardedStatus = useRewardedStatus();
+  const privacyRequired = usePrivacyOptionsRequired();
 
   const dispatch = useCallback((type: 'START_RUN' | 'CONTINUE' | 'PAUSE' | 'RESUME' | 'RESTART_LEVEL' | 'QUIT') => {
     controller.dispatch({ type, now: now() });
   }, []);
   const setPrefs = useCallback((patch: Partial<SaveData>) => progress.update((d) => ({ ...d, ...patch })), []);
+  /** Synchronous lock so double taps can't start two ads / two runs. */
+  const adLock = useRef(false);
+  const [adBusy, setAdBusy] = useState(false);
+  const [adNotice, setAdNotice] = useState<string | null>(null);
+
+  const withAdLock = useCallback(async (fn: () => Promise<void>) => {
+    if (adLock.current) return;
+    adLock.current = true;
+    setAdBusy(true);
+    try {
+      await fn();
+    } finally {
+      adLock.current = false;
+      setAdBusy(false);
+    }
+  }, []);
+
+  const startRun = useCallback(
+    () =>
+      withAdLock(async () => {
+        setAdNotice(null);
+        await adCoordinator.beforeRunStart();
+        dispatch('START_RUN');
+      }),
+    [withAdLock, dispatch],
+  );
+
+  const continueRun = useCallback(
+    () =>
+      withAdLock(async () => {
+        const s = controller.state;
+        if (s.tag !== 'RESULT') return;
+        if (s.next === 'nextLevel') await adCoordinator.beforeNextLevel(s.run.level);
+        dispatch('CONTINUE');
+      }),
+    [withAdLock, dispatch],
+  );
+
+  const watchAd = useCallback(
+    () =>
+      withAdLock(async () => {
+        if (ads.rewardedStatus() === 'unavailable') {
+          ads.ensureLoaded();
+          return;
+        }
+        setAdNotice(null);
+        const outcome: RewardOutcome = await ads.showRewarded();
+        if (outcome === 'rewarded') controller.dispatch({ type: 'REVIVE', now: now() });
+        else
+          setAdNotice(
+            outcome === 'dismissed'
+              ? 'Ad closed early, so no extra life this time.'
+              : 'No ad available right now. Try again in a moment.',
+          );
+      }),
+    [withAdLock],
+  );
+
+  // Make sure a rewarded ad is loading while the revive offer is on screen.
+  useEffect(() => {
+    if (state.tag === 'GAME_OVER') ads.ensureLoaded();
+  }, [state.tag]);
 
   useEffect(() => {
     document.documentElement.dataset.motion = reducedMotion ? 'reduced' : 'full';
@@ -100,10 +173,10 @@ export default function App() {
   const play = () => {
     sfx.unlock();
     if (!save.seenTutorial) setOverlay('tutorial');
-    else dispatch('START_RUN');
+    else void startRun();
   };
 
-  const view = describe(state, save, play, () => dispatch('CONTINUE'));
+  const view = describe(state, save, play, () => void continueRun(), adBusy);
   useRerenderAt(...view.rerenderAt);
 
   const run = selectRun(state);
@@ -186,14 +259,24 @@ export default function App() {
           onCancel={() => setOverlay('none')}
         />
       )}
-      {overlay === 'settings' && <SettingsPanel save={save} onChange={setPrefs} onClose={() => setOverlay('none')} />}
+      {overlay === 'settings' && (
+        <SettingsPanel
+          save={save}
+          onChange={setPrefs}
+          onClose={() => setOverlay('none')}
+          privacyRequired={privacyRequired}
+          privacyUrl={PRIVACY_URL}
+          onPrivacy={() => void ads.showPrivacyOptions()}
+        />
+      )}
       {overlay === 'tutorial' && (
         <TutorialCard
           bandAlwaysVisible={bandVisible}
+          revivable={ads.supported}
           onDone={() => {
             setPrefs({ seenTutorial: true });
             setOverlay('none');
-            dispatch('START_RUN');
+            void startRun();
           }}
         />
       )}
@@ -201,12 +284,23 @@ export default function App() {
         <GameOverCard
           levelReached={state.levelReached}
           bestLevel={save.bestLevel}
-          onRestart={() => dispatch('START_RUN')}
-          onMenu={() => dispatch('QUIT')}
+          revive={{
+            status: rewardedStatus,
+            revivesLeft: state.revivesLeft,
+            max: GAMEPLAY.maxRevivesPerRun,
+            busy: adBusy,
+            notice: adNotice,
+            onWatch: () => void watchAd(),
+          }}
+          onRestart={() => void startRun()}
+          onMenu={() => {
+            setAdNotice(null);
+            dispatch('QUIT');
+          }}
         />
       )}
       {state.tag === 'VICTORY' && (
-        <VictoryCard livesRemaining={state.livesRemaining} onPlayAgain={() => dispatch('START_RUN')} onMenu={() => dispatch('QUIT')} />
+        <VictoryCard livesRemaining={state.livesRemaining} onPlayAgain={() => void startRun()} onMenu={() => dispatch('QUIT')} />
       )}
     </div>
   );
@@ -226,7 +320,7 @@ interface View {
 }
 
 /** All state → copy/controls mapping in one place (handoff §4). */
-function describe(state: GameState, save: SaveData, play: () => void, cont: () => void): View {
+function describe(state: GameState, save: SaveData, play: () => void, cont: () => void, busy: boolean): View {
   const s = state.tag === 'PAUSED' ? state.resumeTo : state;
   const t = now();
   switch (s.tag) {
@@ -237,7 +331,7 @@ function describe(state: GameState, save: SaveData, play: () => void, cont: () =
           save.bestLevel > 0
             ? `Best: level ${save.bestLevel} of ${LEVEL_COUNT} · ${save.gamesPlayed} ${save.gamesPlayed === 1 ? 'game' : 'games'}`
             : `${LEVEL_COUNT} levels · ${GAMEPLAY.startingLives} lives · no mercy`,
-        button: { kind: 'action', label: 'Play', onActivate: play },
+        button: busy ? { kind: 'disabled', label: 'Play' } : { kind: 'action', label: 'Play', onActivate: play },
         rerenderAt: [],
       };
     case 'LEVEL_INTRO': {
@@ -303,7 +397,7 @@ function describe(state: GameState, save: SaveData, play: () => void, cont: () =
           ? `${run.lives} ${run.lives === 1 ? 'life' : 'lives'} left`
           : 'No lives left';
       let button: ButtonMode;
-      if (next === 'nextLevel') button = ready ? { kind: 'action', label: 'Next level', onActivate: cont } : { kind: 'disabled', label: 'Next level' };
+      if (next === 'nextLevel') button = ready && !busy ? { kind: 'action', label: 'Next level', onActivate: cont } : { kind: 'disabled', label: 'Next level' };
       else if (next === 'retry') button = ready ? { kind: 'action', label: 'Try again', onActivate: cont } : { kind: 'disabled', label: 'Try again' };
       else button = { kind: 'disabled', label: next === 'victory' ? 'Level complete' : 'Out of lives' };
       return { prompt, helper, button, rerenderAt: [advanceAt] };

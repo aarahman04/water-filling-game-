@@ -7,7 +7,7 @@ import '@fontsource/manrope/latin-700.css';
 import './theme/tokens.css';
 import './styles/app.css';
 import App from './App.tsx';
-import { progress } from './app/services';
+import { ads, progress } from './app/services';
 import { validateLevels } from './game';
 
 const curveErrors = validateLevels();
@@ -19,4 +19,5 @@ void progress.load().finally(() => {
       <App />
     </StrictMode>,
   );
+  void ads.init();
 });
