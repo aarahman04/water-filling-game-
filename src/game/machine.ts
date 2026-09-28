@@ -11,6 +11,7 @@
  *   FILLING ─FILL_RELEASE | overflow→ SETTLING ─(settleMs)→ RESULT
  *   RESULT ─CONTINUE→ LEVEL_INTRO (next level or retry)
  *   RESULT ─(terminalDelayMs)→ GAME_OVER | VICTORY
+ *   GAME_OVER ─REVIVE (revivesLeft > 0)→ LEVEL_INTRO (same level, reviveLives)
  *   GAME_OVER | VICTORY ─START_RUN→ LEVEL_INTRO (level 1)   ─QUIT→ MENU
  *   LEVEL_INTRO | READY | FILLING | SETTLING | RESULT ─PAUSE→ PAUSED ─RESUME→ (prior)
  * Any action not listed for a state is ignored — that is the input guard.
@@ -85,8 +86,18 @@ function step(state: GameState, action: GameAction, config: MachineConfig, emit:
       pouredThisAttempt: false,
       seed,
       attempt: 0,
+      revivesUsed: 0,
       setup: rollSetup(first, seed, 0),
     });
+  };
+  const gameOver = (run: RunContext): GameState => {
+    emit('gameOver', { at: now, levelReached: run.level });
+    return {
+      tag: 'GAME_OVER',
+      levelReached: run.level,
+      run,
+      revivesLeft: Math.max(0, gameplay.maxRevivesPerRun - run.revivesUsed),
+    };
   };
   const seedOf = (a: GameAction) => (a.type === 'START_RUN' && a.seed !== undefined ? a.seed : Math.floor(now * 1000) ^ 0x5bd1e995);
 
@@ -95,6 +106,15 @@ function step(state: GameState, action: GameAction, config: MachineConfig, emit:
       return action.type === 'START_RUN' ? startRun(seedOf(action)) : state;
 
     case 'GAME_OVER':
+      if (action.type === 'REVIVE' && state.revivesLeft > 0) {
+        const run = { ...state.run, lives: gameplay.reviveLives, revivesUsed: state.run.revivesUsed + 1 };
+        emit('revive', { at: now, level: run.level, lives: run.lives, revivesUsed: run.revivesUsed });
+        return enterIntro(run);
+      }
+      if (action.type === 'START_RUN') return startRun(seedOf(action));
+      if (action.type === 'QUIT') return { tag: 'MENU' };
+      return state;
+
     case 'VICTORY':
       if (action.type === 'START_RUN') return startRun(seedOf(action));
       if (action.type === 'QUIT') return { tag: 'MENU' };
@@ -150,8 +170,7 @@ function step(state: GameState, action: GameAction, config: MachineConfig, emit:
           emit('victory', { at: now, livesRemaining: state.run.lives });
           return { tag: 'VICTORY', livesRemaining: state.run.lives };
         }
-        emit('gameOver', { at: now, levelReached: state.run.level });
-        return { tag: 'GAME_OVER', levelReached: state.run.level };
+        return gameOver(state.run);
       }
       if (!terminal && action.type === 'CONTINUE') {
         const level = state.next === 'nextLevel' ? state.run.level + 1 : state.run.level;
@@ -173,10 +192,7 @@ function step(state: GameState, action: GameAction, config: MachineConfig, emit:
           if (!from.run.pouredThisAttempt) return enterIntro(from.run);
           const lives = from.run.lives - 1;
           emit('lifeLost', { level: from.run.level, at: now, livesRemaining: lives, cause: 'restart' });
-          if (lives <= 0) {
-            emit('gameOver', { at: now, levelReached: from.run.level });
-            return { tag: 'GAME_OVER', levelReached: from.run.level };
-          }
+          if (lives <= 0) return gameOver({ ...from.run, lives });
           return enterIntro({ ...from.run, lives });
         }
         default:

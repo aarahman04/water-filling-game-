@@ -23,7 +23,7 @@ export class FakeScheduler implements FrameScheduler {
 
 const ALL_EVENTS: GameEventName[] = [
   'stateChange', 'runStart', 'levelIntro', 'ready', 'fillStart', 'fillStop', 'settleComplete',
-  'levelPass', 'levelFail', 'lifeLost', 'gameOver', 'victory', 'pause', 'resume',
+  'levelPass', 'levelFail', 'lifeLost', 'gameOver', 'revive', 'victory', 'pause', 'resume',
 ];
 
 /**
@@ -58,7 +58,7 @@ export class Harness {
   }
 
   /** Input at an exact timestamp between frames (like PointerEvent.timeStamp). */
-  input(type: 'START_RUN' | 'FILL_PRESS' | 'FILL_RELEASE' | 'CONTINUE' | 'PAUSE' | 'RESUME' | 'RESTART_LEVEL' | 'QUIT') {
+  input(type: 'START_RUN' | 'REVIVE' | 'FILL_PRESS' | 'FILL_RELEASE' | 'CONTINUE' | 'PAUSE' | 'RESUME' | 'RESTART_LEVEL' | 'QUIT') {
     return this.game.dispatch({ type, now: this.t });
   }
 
