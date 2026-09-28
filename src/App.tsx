@@ -220,12 +220,25 @@ export default function App() {
           {view.button ? <FillButton mode={view.button} /> : <div className="cta-placeholder" />}
           {state.tag === 'MENU' && (
             <nav className="menu__links" aria-label="Information">
-              <button type="button" className="menu__link" onClick={() => setOverlay('privacy')}>
-                Privacy policy
-              </button>
-              <button type="button" className="menu__link" onClick={() => setOverlay('advertising')}>
-                Advertising information
-              </button>
+              {ads.supported ? (
+                <>
+                  <button type="button" className="menu__link" onClick={() => setOverlay('privacy')}>
+                    Privacy policy
+                  </button>
+                  <button type="button" className="menu__link" onClick={() => setOverlay('advertising')}>
+                    Advertising information
+                  </button>
+                </>
+              ) : (
+                <>
+                  <a className="menu__link" href="/privacy.html" target="_blank" rel="noopener noreferrer">
+                    Privacy policy
+                  </a>
+                  <a className="menu__link" href="/advertising.html" target="_blank" rel="noopener noreferrer">
+                    Advertising information
+                  </a>
+                </>
+              )}
             </nav>
           )}
         </footer>
