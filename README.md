@@ -2,6 +2,7 @@
 
 A precision water-filling game. Hold to pour, then release so the water stops inside the band.
 20 levels, 3 lives, 7 kinds of twist, fully offline. React + TypeScript + Canvas, with Capacitor for Android.
+Android build shows AdMob ads: optional rewarded revive and interstitials between runs; the web build has no ads.
 
 ## Scripts
 
@@ -13,6 +14,8 @@ A precision water-filling game. Hold to pour, then release so the water stops in
 | `npm run build` | Static site in `dist/` for Vercel/Netlify, also used by Capacitor |
 | `npm run build:single` | One self-contained `dist-single/index.html` for sharing without hosting |
 | `npm run android:sync` | Build, then copy into `android/` |
+| `node scripts/make-store-assets.mjs` | Generate Capacitor and Play Store art (`npm i --no-save sharp@0.34` first) |
+| `node scripts/capture-screenshots.mjs` | Capture Play Store phone screenshots (`npm i --no-save puppeteer@24` first; start the dev server on port 5199) |
 
 ## Layout
 
@@ -30,6 +33,7 @@ src/render/        Canvas water renderer; it only reads game state and listens t
 src/ui/, App.tsx   DOM HUD, controls, dialogs
 src/persistence/   Local save (localStorage on web / Capacitor Preferences on Android)
 src/audio/         Synthesized SFX driven by hooks
+src/ads/           AdMob (Android) / no-op (web), revive + interstitial pacing
 android/           Capacitor Android project, see docs/ANDROID.md
 ```
 
