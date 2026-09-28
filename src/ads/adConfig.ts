@@ -29,4 +29,4 @@ export const AD_CONFIG = {
   showFallbackMs: 1_500,
 } as const;
 
-export const PRIVACY_URL: string = env.VITE_PRIVACY_URL ?? '';
+export const PRIVACY_URL: string = env.VITE_PRIVACY_URL ?? '/privacy.html';
