@@ -160,6 +160,45 @@ export function Confirm({
   );
 }
 
+export function CompliancePage({
+  page,
+  privacyUrl,
+  onClose,
+}: {
+  page: 'privacy' | 'advertising';
+  privacyUrl: string;
+  onClose: () => void;
+}) {
+  const title = page === 'privacy' ? 'Privacy policy' : 'Advertising information';
+  return (
+    <Dialog
+      title={title}
+      onEscape={onClose}
+      className={page === 'privacy' ? 'card--compliance' : 'card--compliance card--ad-info'}
+    >
+      <div className="compliance__header">
+        <h2 className="card__heading">{title}</h2>
+        <button type="button" className="compliance__back" onClick={onClose}>
+          Back to menu
+        </button>
+      </div>
+      {page === 'privacy' ? (
+        <iframe className="compliance__frame" src={privacyUrl} title="Fill Line privacy policy" />
+      ) : (
+        <div className="compliance__body">
+          <p className="card__body">
+            The Android app uses Google AdMob for optional rewarded ads that grant an extra life and full-screen ads between runs. The web version has no ads.
+          </p>
+          <p className="card__body">Google’s authorized sellers for Fill Line are listed in the public app-ads.txt file.</p>
+          <a className="cta cta--secondary" href="/app-ads.txt" target="_blank" rel="noopener noreferrer">
+            View app-ads.txt
+          </a>
+        </div>
+      )}
+    </Dialog>
+  );
+}
+
 export function SettingsPanel({
   save,
   onChange,

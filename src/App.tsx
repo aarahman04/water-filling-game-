@@ -27,10 +27,10 @@ import { MOTION, TIERS } from './theme/theme';
 import { FillButton } from './ui/FillButton';
 import { Hud } from './ui/Hud';
 import { Icon, IconSprite } from './ui/Icon';
-import { Confirm, GameOverCard, PauseMenu, SettingsPanel, TutorialCard, VictoryCard } from './ui/Overlays';
+import { CompliancePage, Confirm, GameOverCard, PauseMenu, SettingsPanel, TutorialCard, VictoryCard } from './ui/Overlays';
 import { Stage } from './ui/Stage';
 
-type Overlay = 'none' | 'settings' | 'tutorial' | 'confirmRestart' | 'confirmQuit';
+type Overlay = 'none' | 'settings' | 'tutorial' | 'confirmRestart' | 'confirmQuit' | 'privacy' | 'advertising';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const targetVisibility = GAMEPLAY.targetVisibility;
@@ -218,6 +218,16 @@ export default function App() {
           </p>
           <p className="controls__helper">{view.helper}</p>
           {view.button ? <FillButton mode={view.button} /> : <div className="cta-placeholder" />}
+          {state.tag === 'MENU' && (
+            <nav className="menu__links" aria-label="Information">
+              <button type="button" className="menu__link" onClick={() => setOverlay('privacy')}>
+                Privacy policy
+              </button>
+              <button type="button" className="menu__link" onClick={() => setOverlay('advertising')}>
+                Advertising information
+              </button>
+            </nav>
+          )}
         </footer>
       </main>
 
@@ -268,6 +278,9 @@ export default function App() {
           privacyUrl={PRIVACY_URL}
           onPrivacy={() => void ads.showPrivacyOptions()}
         />
+      )}
+      {(overlay === 'privacy' || overlay === 'advertising') && (
+        <CompliancePage page={overlay} privacyUrl={PRIVACY_URL} onClose={() => setOverlay('none')} />
       )}
       {overlay === 'tutorial' && (
         <TutorialCard
