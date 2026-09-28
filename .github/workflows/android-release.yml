@@ -1,0 +1,109 @@
+name: Android release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      upload_to_play:
+        description: Upload the AAB to Google Play (internal track, draft)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+      VITE_ADS_MODE: production
+      VITE_ADMOB_REWARDED_ID: ${{ secrets.ADMOB_REWARDED_ID }}
+      VITE_ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
+      VITE_PRIVACY_URL: ${{ vars.PRIVACY_POLICY_URL }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      HAS_PLAY_KEY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check release secrets
+        run: |
+          missing=0
+          for v in ADMOB_APP_ID VITE_ADMOB_REWARDED_ID VITE_ADMOB_INTERSTITIAL_ID VITE_PRIVACY_URL \
+                   ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "::error::Missing secret/variable for $v"; missing=1; fi
+          done
+          case "$ADMOB_APP_ID" in
+            ca-app-pub-3940256099942544*) echo "::error::ADMOB_APP_ID is Google's test app ID"; missing=1 ;;
+            ca-app-pub-*~*) ;;
+            *) echo "::error::ADMOB_APP_ID must look like ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX"; missing=1 ;;
+          esac
+          exit $missing
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - run: npm ci
+      - run: npm run typecheck && npm run lint && npm test
+      - name: Build web (production ads) and sync
+        run: npm run build && npx cap sync android
+
+      - name: Version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION_NAME="${GITHUB_REF_NAME#v}"
+          else
+            VERSION_NAME="$(node -p "require('./package.json').version")"
+          fi
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+
+      - name: Decode upload keystore
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+
+      - name: Build signed AAB
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew --no-daemon bundleRelease
+
+      - name: Verify signature
+        run: jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab | grep -q "jar verified"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fill-line-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload to Google Play (internal, draft)
+        if: env.HAS_PLAY_KEY == 'true' && (startsWith(github.ref, 'refs/tags/v') || inputs.upload_to_play)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.fillline.game
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: internal
+          status: draft
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"
