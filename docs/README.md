@@ -1,5 +1,7 @@
 # Fill Line design package
 
+For the playable game, start with the [development guide](DEVELOPMENT.md). The [progress log](progress.md) records the completed UI/audio and ad fixes, checks actually run, emulator installation, and remaining Vercel/AdMob/Play release steps.
+
 Start with [the complete design handoff](design-handoff.md). It defines the screens, state transitions, colors, geometry, input behavior, difficulty and animation timing.
 
 - [Asset sheet](index.html): open in a browser for the supplied glass/water composition, palette, button feedback and material layers. It is a design reference, not a playable game.
