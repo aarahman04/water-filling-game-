@@ -1,5 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent, type PointerEvent } from 'react';
 import { controller, eventTime } from '../app/services';
+import { Icon } from './Icon';
 
 type Mode =
   /** Hold-to-fill: pointerdown starts, pointerup / lost capture stops. */
@@ -88,7 +89,8 @@ export function FillButton({ mode }: { mode: Mode }) {
       onContextMenu={(e) => e.preventDefault()}
       onClick={mode.kind === 'action' ? mode.onActivate : undefined}
     >
-      {mode.label}
+      <Icon name={disabled ? 'life-empty' : 'life'} size={22} />
+      <span key={mode.label} className="cta__label">{mode.label}</span>
     </button>
   );
 }

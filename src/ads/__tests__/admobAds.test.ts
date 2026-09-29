@@ -48,6 +48,7 @@ const flush = async () => {
 describe('AdMobAds', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.resetAllMocks();
     h.consent.canRequestAds = true;
     h.consent.status = 'OBTAINED';
     h.consent.isConsentFormAvailable = false;
@@ -55,6 +56,8 @@ describe('AdMobAds', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
+    vi.clearAllTimers();
     vi.useRealTimers();
     h.listeners.clear();
     h.consent.canRequestAds = true;
@@ -123,12 +126,61 @@ describe('AdMobAds', () => {
   });
 
   it('turns ads off when consent does not allow requests', async () => {
+    const { AdMob } = await import('@capacitor-community/admob');
     h.consent.canRequestAds = false;
     const ads = new AdMobAds();
     await ads.init();
     await flush();
     expect(ads.rewardedStatus()).toBe('off');
     expect(await ads.showInterstitial()).toBe(false);
+    ads.ensureLoaded();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(AdMob.prepareRewardVideoAd).not.toHaveBeenCalled();
+    expect(AdMob.prepareInterstitial).not.toHaveBeenCalled();
+    expect(AdMob.requestConsentInfo).toHaveBeenCalledTimes(1);
+  });
+
+  it('recovers from a startup consent error with backoff', async () => {
+    const { AdMob } = await import('@capacitor-community/admob');
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(AdMob.requestConsentInfo)
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockRejectedValueOnce(new Error('still offline'));
+    const ads = new AdMobAds();
+    await ads.init();
+    expect(ads.rewardedStatus()).toBe('unavailable');
+    expect(AdMob.prepareRewardVideoAd).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(AdMob.requestConsentInfo).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(AdMob.prepareInterstitial).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(ads.rewardedStatus()).toBe('ready');
+    expect(AdMob.requestConsentInfo).toHaveBeenCalledTimes(3);
+  });
+
+  it('allows one manual startup retry and cancels the scheduled retry', async () => {
+    const { AdMob } = await import('@capacitor-community/admob');
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(AdMob.initialize).mockRejectedValueOnce(new Error('SDK unavailable'));
+    const ads = new AdMobAds();
+    await ads.init();
+    ads.ensureLoaded();
+    ads.ensureLoaded();
+    await flush();
+    expect(ads.rewardedStatus()).toBe('ready');
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(AdMob.initialize).toHaveBeenCalledTimes(2);
+    expect(AdMob.prepareRewardVideoAd).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a required consent form even when prior consent permits requests', async () => {
+    const { AdMob } = await import('@capacitor-community/admob');
+    h.consent.status = 'REQUIRED';
+    h.consent.isConsentFormAvailable = true;
+    const ads = new AdMobAds();
+    await ads.init();
+    expect(AdMob.showConsentForm).toHaveBeenCalledTimes(1);
   });
 
   it('reports a dismissed interstitial as shown', async () => {

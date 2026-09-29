@@ -1,6 +1,6 @@
 /**
- * Minimal synthesized SFX following the handoff's audio brief (no audio files ship):
- * soft pour loop (40ms in / 100ms out), glass ping on success reveal, dry tap on miss.
+ * Synthesized water and glass sounds (no downloads or audio files):
+ * filtered pour with small bubble resonances, a warm chime on success, a soft miss cue.
  * Driven purely by game hooks. The AudioContext is created on the first fillStart,
  * which always runs inside a pointer/key gesture, satisfying autoplay policies.
  */
@@ -11,6 +11,7 @@ export class Sfx {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private pour: { src: AudioBufferSourceNode; gain: GainNode } | null = null;
+  private water: AudioBuffer | null = null;
   private muted: boolean;
 
   constructor(muted: boolean) {
@@ -29,6 +30,10 @@ export class Sfx {
       c.on('levelPass', () => this.ping()),
       c.on('levelFail', () => this.tap()),
       c.on('pause', () => this.stopPour()),
+      c.on('stateChange', ({ to }) => { if (to === 'MENU') this.stopPour(); }),
+      c.on('victory', () => {
+        [660, 880, 1320].forEach((freq, i) => this.tone(freq, 0.55, 'sine', 0.08, i * 0.12));
+      }),
     ];
     return () => offs.forEach((off) => off());
   }
@@ -40,7 +45,7 @@ export class Sfx {
 
   private ensure(): AudioContext | null {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') void this.ctx.resume();
+      if (this.ctx.state === 'suspended') void this.ctx.resume().catch(() => {});
       return this.ctx;
     }
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -60,25 +65,46 @@ export class Sfx {
     const ctx = this.ensure();
     if (!ctx || !this.master) return;
     this.stopPour();
-    const len = ctx.sampleRate * 2;
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    let last = 0;
-    for (let i = 0; i < len; i++) {
-      last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; // brown-ish noise
-      data[i] = last * 3.5;
+    if (!this.water) {
+      const len = ctx.sampleRate * 4;
+      this.water = ctx.createBuffer(1, len, ctx.sampleRate);
+      const data = this.water.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        last = last * 0.88 + (Math.random() * 2 - 1) * 0.12;
+        data[i] = last * (0.65 + 0.12 * Math.sin(2 * Math.PI * i / ctx.sampleRate));
+      }
+      // Short, rounded resonances make the stream sound liquid rather than like static.
+      for (let start = 0; start < len; start += Math.floor(ctx.sampleRate * (0.08 + Math.random() * 0.12))) {
+        const freq = 420 + Math.random() * 900;
+        const duration = 0.045 + Math.random() * 0.04;
+        for (let j = 0; j < ctx.sampleRate * duration; j++) {
+          const t = j / ctx.sampleRate;
+          data[(start + j) % len] += 0.16 * Math.sin(2 * Math.PI * (freq * t - 1800 * t * t)) * Math.sin(Math.PI * t / duration) ** 2;
+        }
+      }
+      // Smooth the loop boundary to avoid a click every four seconds.
+      const edge = Math.floor(ctx.sampleRate * 0.01);
+      for (let i = 0; i < edge; i++) {
+        data[i] *= i / edge;
+        data[len - 1 - i] *= i / edge;
+      }
     }
     const src = ctx.createBufferSource();
-    src.buffer = buf;
+    src.buffer = this.water;
     src.loop = true;
     const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 900;
-    filter.Q.value = 0.8;
+    filter.type = 'lowpass';
+    filter.frequency.value = 2400;
+    filter.Q.value = 0.5;
+    const lowCut = ctx.createBiquadFilter();
+    lowCut.type = 'highpass';
+    lowCut.frequency.value = 180;
     const gain = ctx.createGain();
     gain.gain.value = 0;
-    gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.04);
-    src.connect(filter).connect(gain).connect(this.master);
+    gain.gain.linearRampToValueAtTime(0.42, ctx.currentTime + 0.06);
+    src.connect(filter).connect(lowCut).connect(gain).connect(this.master);
+    src.onended = () => { src.disconnect(); filter.disconnect(); lowCut.disconnect(); gain.disconnect(); };
     src.start();
     this.pour = { src, gain };
   }
@@ -94,28 +120,30 @@ export class Sfx {
     this.pour = null;
   }
 
-  private tone(freq: number, dur: number, type: OscillatorType, peak: number) {
+  private tone(freq: number, dur: number, type: OscillatorType, peak: number, delay = 0) {
     const ctx = this.ensure();
     if (!ctx || !this.master) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = type;
     osc.frequency.value = freq;
-    const t = ctx.currentTime;
+    const t = ctx.currentTime + delay;
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(peak, t + 0.005);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     osc.connect(gain).connect(this.master);
     osc.start(t);
     osc.stop(t + dur + 0.02);
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
   }
 
   private ping() {
-    this.tone(1760, 0.12, 'sine', 0.12);
-    this.tone(2637, 0.1, 'sine', 0.05);
+    this.tone(880, 0.42, 'sine', 0.10);
+    this.tone(1320, 0.32, 'sine', 0.045, 0.065);
   }
 
   private tap() {
-    this.tone(140, 0.1, 'triangle', 0.2);
+    this.tone(220, 0.16, 'sine', 0.09);
+    this.tone(165, 0.2, 'sine', 0.065, 0.06);
   }
 }

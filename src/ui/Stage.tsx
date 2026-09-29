@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
 import { isReducedMotion, useLatest } from '../app/hooks';
 import { controller } from '../app/services';
 import { WaterRenderer } from '../render/waterRenderer';
@@ -8,8 +8,6 @@ import type { TargetVisibility } from '../game';
 interface Props {
   targetVisibility: TargetVisibility;
   reducedMotion: boolean;
-  /** Prompt line above the art (44px reserved). */
-  prompt: ReactNode;
   dimmed?: boolean;
 }
 
@@ -23,9 +21,9 @@ const box = (r: { x: number; y: number; w: number; h: number }): CSSProperties =
 
 /**
  * Glass assembly. Draw order (handoff §2): stand → rear glass → canvas (water, stream,
- * band, marker) → front glass → spout. Art scale s = min(1.25, fit height, fit width).
+ * band, marker) → front glass → spout. Only the artwork scales; text and controls do not.
  */
-export function Stage({ targetVisibility, reducedMotion, prompt, dimmed }: Props) {
+export function Stage({ targetVisibility, reducedMotion, dimmed }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const artRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -52,7 +50,7 @@ export function Stage({ targetVisibility, reducedMotion, prompt, dimmed }: Props
       const gutter = width < 360 ? 32 : 48;
       const s = Math.max(
         0.3,
-        Math.min(STAGE.maxScale, (height - STAGE.promptHeight) / STAGE.height, (width - gutter) / STAGE.width),
+        Math.min(STAGE.maxScale, height / STAGE.height, (width - gutter) / STAGE.width),
       );
       if (Math.abs(s - lastScale) < 0.001) return;
       lastScale = s;
@@ -75,9 +73,6 @@ export function Stage({ targetVisibility, reducedMotion, prompt, dimmed }: Props
 
   return (
     <div className={`stage${dimmed ? ' stage--dimmed' : ''}`} ref={rootRef}>
-      <div className="stage__prompt" aria-live="polite">
-        {prompt}
-      </div>
       <div className="stage__art-wrap">
         <div
           className="stage__art"

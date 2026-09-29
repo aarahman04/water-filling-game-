@@ -29,18 +29,22 @@ export function Hud({ level, lives, maxLives, onPause }: { level: number; lives:
         </span>
       </div>
       <div className="hud__lives" role="img" aria-label={`${lives} of ${maxLives} lives`} key={runKey}>
-        {Array.from({ length: maxLives }, (_, i) => (
-          <span key={i} className="life" style={{ animationDelay: `${i * 60}ms` }}>
-            <Icon name="life-empty" className="life__empty" size={20} />
-            {(i < lives || i === lostIndex) && (
-              <Icon name="life" size={20} className={`life__full${i === lostIndex && i >= lives ? ' is-lost' : ''}`} />
-            )}
-          </span>
-        ))}
+        <span className="hud__label">LIVES</span>
+        <div className="hud__droplets">
+          {Array.from({ length: maxLives }, (_, i) => (
+            <span key={i} className="life" style={{ animationDelay: `${i * 60}ms` }}>
+              <Icon name="life-empty" className="life__empty" size={20} />
+              {(i < lives || i === lostIndex) && (
+                <Icon name="life" size={20} className={`life__full${i === lostIndex && i >= lives ? ' is-lost' : ''}`} />
+              )}
+            </span>
+          ))}
+        </div>
       </div>
       <button type="button" className="icon-btn" aria-label="Pause" onClick={onPause}>
         <Icon name="pause" />
       </button>
+      <div className="hud__progress" aria-hidden="true"><span style={{ width: `${level / LEVEL_COUNT * 100}%` }} /></div>
     </header>
   );
 }

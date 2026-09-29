@@ -19,9 +19,10 @@ Do these in order once the PR is merged. Commands are for Windows PowerShell in 
    real ads on your own phone. It can get the account banned.
 
 **C. Website (Vercel)**
-1. Edit `public/app-ads.txt` and replace `pub-0000000000000000` with your Publisher ID. Commit on a branch, open a PR, merge.
+1. In Vercel Project Settings → Environment Variables, add `ADMOB_APP_ID` with the existing AdMob App ID from B.1 for Production. Redeploy after the code changes are deployed. GitHub secrets are not automatically available to Vercel.
+   The build generates `dist/app-ads.txt` from that ID; never commit real IDs. Production Vercel builds refuse a missing App ID.
 2. After Vercel deploys, open `https://<your-vercel-domain>/privacy.html` and `https://<your-vercel-domain>/app-ads.txt`.
-   Both must load. `<your-vercel-domain>` is the production domain in the Vercel dashboard.
+   Both must load. The seller line must match the snippet shown in AdMob, not a placeholder or a setup comment. `<your-vercel-domain>` is the production domain in the Vercel dashboard.
 3. If you want a different contact email than aarahman803@gmail.com, edit `public/privacy.html` and
    `docs/android-release/store-listing.md`.
 
@@ -89,6 +90,10 @@ GitHub → Actions → "Android release" → download the `fill-line-1.0.0-…-a
    link on your phone, install, and play through once.
 
 **H. Production access**
+While the app is only available to closed testers and cannot be found in AdMob's store search, keep the existing unpublished AdMob app. Do not create a duplicate app or invent store details. Full serving requires a publicly available store listing and AdMob verification/review.
+
+To test the existing production ad units during closed testing: AdMob → Settings → **Test devices** → **Add test device** → Android → enter each tester's Advertising ID and save. Follow [Google's test-device instructions](https://support.google.com/admob/answer/9691433). Test ads usually become available within 15 minutes, but can take up to 24 hours; confirm the **Test Ad** label. Adding test devices does not approve the app for real ad serving.
+
 New personal developer accounts must run a **Closed testing** release with **≥ 12 testers opted in for 14 consecutive
 days** before production is unlocked. Create the closed track, add 12+ Gmail addresses (friends or family), promote the same
 build, wait 14 days, then Dashboard → Apply for production. After approval: Production → Create release → promote
@@ -96,7 +101,10 @@ the tested build → roll out.
 
 **I. After it's live**
 1. AdMob → Apps → Fill Line → App settings → **Link to app store** → pick the Play listing.
-2. AdMob → Apps → app-ads.txt tab → verify (it can take up to 24 h after crawling).
+   The package is `com.fillline.game`. Google requires a publicly available supported-store listing; a private closed-test listing may not be linkable yet.
+2. AdMob → App settings → **Verify app** → **Check for updates**, after the developer website in the Play listing serves the generated `app-ads.txt`.
+3. Complete the app readiness review and check that the app reaches **Ready**. **Requires review** with **Limited ad serving** is an account/store setup issue, not proof of missing build secrets. Test ads working in a debug APK do not confirm production ad serving.
+   See [app readiness](https://support.google.com/admob/answer/10564477) and [app verification](https://support.google.com/admob/answer/14538460).
 
 **J. Optional: automatic uploads**
 Do this only after the first manual upload in G.4, because Play requires the first upload to be manual. Google Cloud console →

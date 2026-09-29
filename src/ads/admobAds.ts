@@ -47,6 +47,8 @@ export class AdMobAds implements AdService {
   private privacyRequired = false;
   private fullscreen = false;
   private initPromise: Promise<void> | null = null;
+  private initFailures = 0;
+  private initRetry: ReturnType<typeof setTimeout> | null = null;
   private readonly slots: Record<Kind, Slot> = { rewarded: newSlot(), interstitial: newSlot() };
   private readonly listeners = new Set<() => void>();
 
@@ -55,6 +57,10 @@ export class AdMobAds implements AdService {
   }
 
   init(): Promise<void> {
+    if (this.initRetry !== null) {
+      clearTimeout(this.initRetry);
+      this.initRetry = null;
+    }
     return (this.initPromise ??= this.doInit());
   }
 
@@ -64,7 +70,7 @@ export class AdMobAds implements AdService {
   };
 
   rewardedStatus = (): RewardedStatus => {
-    if (!this.canRequest) return 'off';
+    if (!this.canRequest) return this.initFailures > 0 ? 'unavailable' : 'off';
     const s = this.slots.rewarded.status;
     return s === 'ready' ? 'ready' : s === 'failed' ? 'unavailable' : 'loading';
   };
@@ -72,13 +78,17 @@ export class AdMobAds implements AdService {
   privacyOptionsRequired = (): boolean => this.privacyRequired;
 
   ensureLoaded(): void {
+    if (this.initFailures > 0) {
+      void this.init();
+      return;
+    }
     void this.load('rewarded');
     void this.load('interstitial');
   }
 
   async showRewarded(): Promise<RewardOutcome> {
     if (!this.canRequest || this.fullscreen || this.slots.rewarded.status !== 'ready') {
-      void this.load('rewarded');
+      this.ensureLoaded();
       return 'unavailable';
     }
     const r = await this.present('rewarded');
@@ -87,7 +97,7 @@ export class AdMobAds implements AdService {
 
   async showInterstitial(): Promise<boolean> {
     if (!this.canRequest || this.fullscreen || this.slots.interstitial.status !== 'ready') {
-      void this.load('interstitial');
+      this.ensureLoaded();
       return false;
     }
     return (await this.present('interstitial')) !== 'failed';
@@ -110,17 +120,25 @@ export class AdMobAds implements AdService {
     try {
       await AdMob.initialize({ initializeForTesting: !AD_CONFIG.production });
       let info = await AdMob.requestConsentInfo();
-      if (!info.canRequestAds && info.isConsentFormAvailable && info.status === AdmobConsentStatus.REQUIRED) {
+      if (info.isConsentFormAvailable && info.status === AdmobConsentStatus.REQUIRED) {
         info = await AdMob.showConsentForm();
       }
       this.canRequest = info.canRequestAds;
       this.privacyRequired = info.privacyOptionsRequirementStatus === 'REQUIRED';
+      this.initFailures = 0;
     } catch (err) {
       console.error('[fill-line] ads init failed', err);
       this.canRequest = false;
+      this.initPromise = null;
+      this.initFailures += 1;
+      const delay = Math.min(AD_CONFIG.maxRetryMs, AD_CONFIG.baseRetryMs * 2 ** (this.initFailures - 1));
+      this.initRetry = setTimeout(() => {
+        this.initRetry = null;
+        void this.init();
+      }, delay);
     }
     this.notify();
-    this.ensureLoaded();
+    if (this.canRequest) this.ensureLoaded();
   }
 
   private async load(kind: Kind): Promise<void> {

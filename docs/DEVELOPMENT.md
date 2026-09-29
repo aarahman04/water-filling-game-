@@ -28,7 +28,7 @@ Fill Line is a portrait water-filling game. The browser and Android app share on
 | `src/audio/sfx.ts` | Synthesized sound effects driven by controller events. |
 | `src/persistence/` | Save schema, event-derived progress, and web/Android key-value adapters. |
 | `src/ads/` | AdMob service, web no-op service, consent, and ad pacing policy. |
-| `public/` | Static site files copied to the root of `dist/`, including privacy, advertising, and app-ads pages. |
+| `public/` | Static site files copied to the root of `dist/`, including privacy and advertising pages. `vite.config.ts` generates app-ads.txt from the build environment. |
 | `android/` | Capacitor Android project and Gradle configuration. |
 | `scripts/` | Difficulty simulator and store artwork/screenshot tooling. |
 | `docs/ANDROID.md`, `docs/android-release/OWNER_CHECKLIST.md` | Android builds, release prerequisites, store listing, and owner-only steps. |
@@ -94,3 +94,7 @@ For local Android builds use Android Studio's bundled JDK 21 or Temurin 21. Do n
 ## Tests and fixtures
 
 Tests live beside their domain in `__tests__/`. Game transition tests use the pure reducer and deterministic timestamps/configuration; `src/game/__tests__/harness.ts` is shared setup. Persistence tests exercise the pure save parser/reducer and stores. Ad tests mock the platform SDK; don't make tests depend on real ads, a device, network access, or wall-clock timing.
+
+`node scripts/check-ads-build.mjs` checks production seller-file generation and rejection of missing/placeholder App IDs using synthetic IDs and temporary build output.
+
+For UI changes, `node scripts/check-ui.mjs` checks four phone sizes, level instructions, touch capture, every level, reduced motion, and sound/mute using a dev server on port 5199 and the same optional Puppeteer install as `capture-screenshots.mjs`. Screenshots go to the system temporary directory.

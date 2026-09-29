@@ -1,9 +1,26 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { useLatest } from '../app/hooks';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useLatest, useReducedMotion } from '../app/hooks';
 import type { RewardedStatus } from '../ads';
 import { LEVELS, LEVEL_COUNT } from '../game';
 import type { SaveData } from '../persistence/progress';
 import { Icon } from './Icon';
+
+/** Keep a closing overlay mounted just long enough for its exit transition. */
+export function OverlayTransition({ active, children }: { active: boolean; children: ReactNode }) {
+  const [previous, setPrevious] = useState(children);
+  const reducedMotion = useReducedMotion();
+  if (active && previous !== children) setPrevious(children);
+  useEffect(() => {
+    if (active) return;
+    const timer = window.setTimeout(() => setPrevious(null), reducedMotion ? 0 : 180);
+    return () => clearTimeout(timer);
+  }, [active, reducedMotion]);
+  return (
+    <div className={`overlay-stack${active ? '' : ' is-leaving'}`} inert={!active} aria-hidden={!active || undefined}>
+      {active ? children : previous}
+    </div>
+  );
+}
 
 /** Modal card with focus trap + restore and Escape handling. */
 export function Dialog({
@@ -24,14 +41,14 @@ export function Dialog({
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     const el = ref.current!;
-    el.querySelector<HTMLElement>('button, [href], input')?.focus();
+    (el.querySelector<HTMLElement>('button, [href], input') ?? el).focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && escRef.current) {
         e.preventDefault();
         escRef.current();
       } else if (e.key === 'Tab') {
         const items = [...el.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input')];
-        if (items.length === 0) return;
+        if (items.length === 0) { e.preventDefault(); return; }
         const first = items[0];
         const last = items[items.length - 1];
         if (e.shiftKey && document.activeElement === first) {
@@ -52,7 +69,7 @@ export function Dialog({
 
   return (
     <div className={`overlay${scrim ? ' overlay--scrim' : ''}`}>
-      <div className={`card ${className}`} role="dialog" aria-modal="true" aria-label={title} ref={ref}>
+      <div className={`card ${className}`} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={ref}>
         {children}
       </div>
     </div>
@@ -367,31 +384,6 @@ export function VictoryCard({ livesRemaining, onPlayAgain, onMenu }: { livesRema
         </button>
         <button type="button" className="cta cta--secondary" onClick={onMenu}>
           Main menu
-        </button>
-      </div>
-    </Dialog>
-  );
-}
-
-export function TutorialCard({ bandAlwaysVisible, revivable, onDone }: { bandAlwaysVisible: boolean; revivable: boolean; onDone: () => void }) {
-  return (
-    <Dialog title="How to play" onEscape={onDone}>
-      <h2 className="card__heading">How to play</h2>
-      <p className="card__body">
-        {bandAlwaysVisible
-          ? 'Hold Fill to pour. Release so the water stops inside the band.'
-          : 'Watch the band. Hold Fill, then release where the band was.'}
-      </p>
-      <p className="card__body">
-        It gets nasty fast: the band moves, hides, shrinks and changes place on every try. The flow surges without
-        warning, fog hides the water, and the nozzle drips after you let go.
-      </p>
-      <p className="card__meta">
-        20 levels · 3 lives · run out and you restart from level 1{revivable ? ' (or watch an ad for an extra life)' : ''}.
-      </p>
-      <div className="card__actions">
-        <button type="button" className="cta cta--primary cta--md" onClick={onDone}>
-          Got it
         </button>
       </div>
     </Dialog>

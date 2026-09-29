@@ -50,6 +50,10 @@ The Android app offers an optional rewarded ad for one revive when a run ends, w
 
 UMP consent is requested at launch. Settings provides Ad privacy choices when required and a Privacy policy link when `VITE_PRIVACY_URL` is set.
 
+Temporary SDK/consent startup failures retry with the existing 5–60 second backoff; ads stay blocked until UMP allows requests. A completed consent check that disallows requests is not retried automatically.
+
+The website build generates `app-ads.txt` from `ADMOB_APP_ID`. Set that variable separately in Vercel's Production environment and redeploy; GitHub secrets configure the AAB, not the website. Do not put the real ID in source. See the owner checklist for linking the Play listing, verifying app-ads.txt, and completing AdMob review. Limited serving or an unlinked **Requires review** app cannot be fixed with signing secrets.
+
 ## Play Console notes
 
 - **Contains ads:** yes.

@@ -10,6 +10,8 @@ html,
 body,
 #root {
   height: 100%;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -47,7 +49,7 @@ button {
 .game {
   --gutter: var(--page-gutter);
   --header-h: 80px;
-  --controls-h: 148px;
+  --controls-h: 124px;
   position: relative;
   width: 100%;
   max-width: var(--game-max-width);
@@ -55,6 +57,7 @@ button {
   max-height: var(--game-max-height);
   display: grid;
   grid-template-rows: var(--header-h) minmax(0, 1fr) var(--controls-h);
+  transition: grid-template-rows 220ms var(--ease-out);
   padding: var(--space-5) var(--gutter) var(--space-6);
   background: var(--bg-bottom) url('../assets/design/background.svg') center / cover no-repeat;
   overflow: hidden;
@@ -63,12 +66,9 @@ button {
 @media (max-height: 700px) {
   .game {
     --header-h: 64px;
-    --controls-h: 128px;
+    --controls-h: 124px;
     padding-top: var(--space-4);
     padding-bottom: var(--space-4);
-  }
-  .controls__caption {
-    display: none;
   }
 }
 
@@ -79,7 +79,6 @@ button {
 }
 
 /* ── Header / HUD ───────────────────────────────────────────────────────── */
-.hud,
 .title {
   display: flex;
   align-items: flex-start;
@@ -89,10 +88,42 @@ button {
   min-width: 0;
 }
 
+.hud {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  align-content: start;
+  row-gap: 16px;
+  padding-top: 4px;
+}
+
+.hud > .icon-btn {
+  justify-self: end;
+  margin: 0;
+  background: rgb(131 216 243 / 8%);
+  border: 1px solid rgb(131 216 243 / 16%);
+}
+
+.hud__progress {
+  grid-column: 1 / -1;
+  height: 3px;
+  background: rgb(131 216 243 / 12%);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.hud__progress span {
+  display: block;
+  height: 100%;
+  background: var(--life);
+  border-radius: inherit;
+  transition: width var(--duration-transition) var(--ease-out);
+}
+
 .hud__level {
   display: flex;
   flex-direction: column;
-  min-width: 72px;
+  min-width: 0;
 }
 
 .hud__label {
@@ -111,8 +142,14 @@ button {
 
 .hud__lives {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.hud__droplets {
+  display: flex;
   gap: 6px;
-  margin-top: var(--space-2);
 }
 
 .life {
@@ -177,10 +214,6 @@ button {
   grid-template-rows: 150px minmax(0, 1fr) var(--controls-h);
 }
 
-.game--title .controls__caption {
-  display: none;
-}
-
 @media (max-height: 700px) {
   .game--title {
     --controls-h: 184px;
@@ -204,7 +237,10 @@ button {
   color: var(--text);
   cursor: pointer;
   margin: -8px -12px 0 0;
+  transition: background-color 180ms, transform 130ms var(--ease-out);
 }
+
+.icon-btn:active { transform: scale(0.92); }
 
 .icon-btn:hover {
   background: rgb(255 255 255 / 6%);
@@ -224,31 +260,11 @@ button {
   opacity: 0.35;
 }
 
-.stage__prompt {
-  flex: none;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.prompt__text,
 .prompt__sub {
   font-size: var(--text-label);
   line-height: 20px;
   font-weight: 600;
   color: var(--text-secondary);
-}
-
-.prompt__level {
-  font-family: var(--font-display);
-  font-weight: var(--weight-display);
-  font-size: var(--text-heading);
-  line-height: 36px;
-  letter-spacing: 0.2px;
-  font-variant-numeric: tabular-nums;
-  animation: rise-in var(--duration-ui) var(--ease-out) both;
 }
 
 .prompt__result {
@@ -310,17 +326,20 @@ button {
   min-width: 0;
 }
 
-.controls__caption {
-  margin: 0 0 var(--space-2);
+.controls > .cta,
+.controls > .cta-placeholder {
+  flex: none;
+}
+
+.controls__status {
+  min-height: 48px;
+  margin-bottom: 12px;
   text-align: center;
-  font-size: var(--text-caption);
-  line-height: 16px;
-  letter-spacing: 1.6px;
-  font-weight: 600;
+  animation: rise-in 180ms var(--ease-out) both;
 }
 
 .controls__helper {
-  margin: 0 0 var(--space-3);
+  margin: 4px 0 0;
   min-height: 20px;
   text-align: center;
   font-size: var(--text-label);
@@ -377,6 +396,10 @@ button {
 }
 
 .cta--primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   height: var(--button-height);
   color: var(--accent-ink);
   background: var(--accent) url('../assets/design/button-fill.svg') center / 100% 100% no-repeat;
@@ -450,11 +473,18 @@ button {
   background: var(--scrim);
 }
 
+.overlay-stack { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
+.overlay-stack .overlay { pointer-events: auto; transition: opacity 180ms var(--ease-in); }
+.overlay-stack .card { transition: transform 180ms var(--ease-in); }
+.overlay-stack.is-leaving .overlay { opacity: 0; pointer-events: none; }
+.overlay-stack.is-leaving .card { transform: translateY(10px) scale(0.98); }
+
 .card {
   width: min(312px, 100%);
   padding: var(--space-5);
   border-radius: var(--radius-panel);
   background: var(--surface);
+  border: 1px solid rgb(131 216 243 / 18%);
   box-shadow: var(--shadow-panel);
   animation: card-in var(--duration-ui) var(--ease-out) both;
   user-select: text;
@@ -776,16 +806,68 @@ a.cta {
   }
 }
 
-/* ── Twists ────────────────────────────────────────────────────────────── */
-.prompt__text--warn {
-  color: var(--accent);
-  max-width: 300px;
-  text-wrap: balance;
-  animation: rise-in var(--duration-ui) var(--ease-out) both;
+/* Level instructions */
+.cta__label { animation: fade-in 180ms var(--ease-out) both; }
+
+.card--brief {
+  position: relative;
+  width: min(360px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  text-align: center;
+  background: linear-gradient(150deg, var(--surface-raised), var(--surface) 70%);
 }
 
-.twists {
-  color: var(--fail);
-  font-weight: 600;
-  letter-spacing: 0.3px;
+.brief__badge {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  color: var(--life);
+  background: rgb(131 216 243 / 10%);
+  border: 1px solid rgb(131 216 243 / 22%);
+  border-radius: 18px;
 }
+
+.brief__eyebrow {
+  margin: 0 0 8px;
+  font-size: var(--text-caption);
+  line-height: 18px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--life);
+}
+
+.brief__instruction {
+  margin: 0 0 16px;
+  font-size: var(--text-body);
+  line-height: 26px;
+  text-wrap: balance;
+}
+
+.brief__twists {
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.brief__twists li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-top: 1px solid rgb(131 216 243 / 12%);
+  font-size: var(--text-label);
+  line-height: 20px;
+}
+
+.brief__twists span { color: var(--text-secondary); }
+.brief__actions { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+.brief__actions .cta { flex: 1; font-size: var(--text-label); }
+.brief__timer { height: 3px; margin-top: 20px; background: rgb(131 216 243 / 12%); overflow: hidden; border-radius: var(--radius-pill); }
+.brief__timer span { display: block; height: 100%; background: var(--life); transform-origin: left; animation: brief-countdown linear forwards; }
+@keyframes brief-countdown { to { transform: scaleX(0); } }
+
+:root[data-motion='reduced'] .brief__timer span { animation: none !important; }

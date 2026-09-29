@@ -34,8 +34,6 @@ export const ASSETS = {
 export const STAGE = {
   width: 232,
   height: 470,
-  /** Reserved above the art for the prompt line. */
-  promptHeight: 44,
   maxScale: 1.25,
   spout: { x: 84, y: 0, w: 64, h: 64 },
   glass: { x: 20, y: 74, w: 192, h: 360 },
